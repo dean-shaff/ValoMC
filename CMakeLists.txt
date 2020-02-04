@@ -10,7 +10,8 @@ else()
     message(FATAL_ERROR "Did not detect a 64 bit target platform. Use \"cmake --help\" to list all available target platforms and select a 64 bit one using e.g. \n cmake . -G \"Visual Studio 15 2017 Win64\" ")
 endif()
 
-find_package(Matlab REQUIRED COMPONENTS MEX_COMPILER MX_LIBRARY ENG_LIBRARY)
+# for running CPP code in non matlab environment
+# find_package(Matlab REQUIRED COMPONENTS MEX_COMPILER MX_LIBRARY ENG_LIBRARY)
 
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -35,6 +36,7 @@ set(EXECUTABLE_OUTPUT_PATH  ${PROJECT_SOURCE_DIR})
 add_executable(MC2D cpp/2d/MC2D.cpp)
 add_executable(MC3D cpp/3d/MC3D.cpp)
 
+add_subdirectory(cpp/test)
 
 if (Matlab_FOUND)
    matlab_add_mex(NAME MC2Dmex OUTPUT_NAME MC2Dmex ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp)
