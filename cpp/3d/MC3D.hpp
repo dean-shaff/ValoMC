@@ -993,7 +993,7 @@ void MC3D::BuildLightSource()
 
   for (ii = 0; ii < NLightSource; ii++)
     LightSourcesCDF[ii] *= BCIntensity[LightSources[ii]]; // [AL]
-    
+
   // Compute cumsum of LightSourcesCDF and normalize -- Ie. form cumulated distribution function
   for (ii = 1; ii < NLightSource; ii++)
     LightSourcesCDF[ii] += LightSourcesCDF[ii - 1];
@@ -1495,23 +1495,23 @@ void MC3D::PropagatePhoton(Photon *phot)
 
         /*
  	    cls;
-	  
+
 	    syms w0 mua k x ph0 s real;
-	  
+
 	    % k = 0; ph0 = 0;
-	    
+
 	    e = w0 * exp(-mua * x - j * (k * x + ph0));
-	    
+
 	    g = int(e, x, 0, s);
-	    
+
 	    syms a b real;
-	    
+
 	    f = (a + i * b) / (mua + i * k);
-	    
+
 	    % Change of element as photon passes it
 	    pretty(simplify( real( g * (mua + i * k) ) ))
 	    pretty(simplify( imag( g * (mua + i * k) ) ))
-	    
+
 	    % Final divider / normalization
 	    pretty( simplify( real(f) ) )
 	    pretty( simplify( imag(f) ) )
