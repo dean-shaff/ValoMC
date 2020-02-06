@@ -471,7 +471,7 @@ void MC3D::ErrorChecks()
   // row size of BH and BCLightDirectionType are equal
   // H contains an index that cannot be found in r
   // BH contains an index that cannot be found in r
-
+  // std::cerr << "MC3D::ErrorChecks()" << std::endl;
   if (g.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_G;
@@ -553,6 +553,7 @@ void MC3D::ErrorChecks()
 
   for (int ii = 0; ii < H.N; ii++)
   {
+    // std::cerr << "(" << r.Nx << ", " << H[ii] << ") ";
     if (H[ii] < 0 || H[ii] >= r.Nx)
     {
       throw INCONSISTENT_H;
@@ -590,6 +591,8 @@ void MC3D::Init()
   MPI_Allreduce(&threadcount, &totalthreads, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
 
+
+
   DistributeArray(H);
   DistributeArray(HN);
   DistributeArray(BH);
@@ -609,7 +612,6 @@ void MC3D::Init()
 #endif
 
   omega = 2.0 * M_PI * f;
-
   // Build neigborhood topology if required
   BuildNeighbourhoods();
 
@@ -834,10 +836,12 @@ void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t
 // Build neigbourhood HN for volumetric topology H
 void MC3D::BuildNeighbourhoods()
 {
+  // std::cerr << "MC3D::BuildNeighbourhoods" << std::endl;
 #define NEW_NHOOD
 #ifdef NEW_NHOOD
   if (HN.N != H.N)
   {
+    // std::cerr << "MC3D::BuildNeighbourhoods: HN.N != H.N" << std::endl;
     HN.resize(H.Nx, 4);
     std::vector<std::vector<int_fast64_t> > parent;
     parent.resize((int)r.Nx);
@@ -866,6 +870,12 @@ void MC3D::BuildNeighbourhoods()
       search_neighbor(parent[(int)H(ii, 1)], ii);
       search_neighbor(parent[(int)H(ii, 2)], ii);
       search_neighbor(parent[(int)H(ii, 3)], ii);
+      // if (istart < 10) {
+      //   std::cerr << "[ " <<  HN(ii, 0) << ", " << HN(ii, 1) << ", "
+      //     <<  HN(ii, 2) << ", " << HN(ii, 3) << "] ";
+      //   std::cerr << "[ " <<  H(ii, 0) << ", " << H(ii, 1) << ", "
+      //     <<  H(ii, 2) << ", " << H(ii, 3) << "] " << std::endl;
+      // }
       //      printf("%li %li %li %li\n", HN(ii, 0), HN(ii, 1), HN(ii, 2), HN(ii, 3));
     }
   }
@@ -1453,6 +1463,7 @@ void MC3D::PropagatePhoton(Photon *phot)
   double prop, dist, ds;
   int_fast64_t ib;
   // Propagate until the photon dies
+
   while (1)
   {
     // Draw the propagation distance

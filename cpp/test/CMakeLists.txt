@@ -10,3 +10,4 @@ set(TEST_SOURCES
 
 add_executable(test_main ${TEST_SOURCES})
 target_include_directories(test_main PUBLIC ${CPP_3D_DIR})
+target_compile_options(test_main PUBLIC -g)
