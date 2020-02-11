@@ -2,6 +2,14 @@
 
 #include "MC3D_kernels.cuh"
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+   if (code != cudaSuccess) {
+    fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    if (abort) exit(code);
+   }
+}
+
 __host__ __device__ void util::cross (
   double dest[3], double v1[3], double v2[3]
 )
@@ -54,4 +62,26 @@ __host__ __device__ int util::ray_triangle_intersects (
     return 0;
   *t = util::dot(edge2, qvec) * inv_det;
   return 1;
+}
+
+
+
+__host__ __device__ double util::uniform_closed (curandState_t* state)
+{
+  return 0.0;
+}
+
+__host__ __device__ double util::uniform_open (curandState_t* state)
+{
+  return 0.0;
+}
+
+__host__ __device__ double util::uniform_half_upper (curandState_t* state)
+{
+  return 0.0;
+}
+
+__host__ __device__ double util::uniform_half_lower (curandState_t* state)
+{
+  return 0.0;
 }

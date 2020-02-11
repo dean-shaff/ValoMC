@@ -4,6 +4,7 @@ set(CPP_3D_DIR
 )
 
 set(TEST_SOURCES
+  test_util.cpp
   test_MC3D.cpp
   test_main.cpp
 )
