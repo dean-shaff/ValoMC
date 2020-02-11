@@ -1,6 +1,7 @@
-#include "curand_kernel.h"
+#ifndef __MC3D_kernels_cuh
+#define __MC3D_kernels_cuh
 
-#include "MC3D_cuda.hpp"
+#include "curand_kernel.h"
 
 namespace util {
   __host__ __device__ int ray_triangle_intersects (
@@ -44,3 +45,5 @@ __host__ __device__ void propagate_photon ();
 __global__ void monte_carlo_traverse ();
 
 __global__ void monte_carlo_sum ();
+
+#endif

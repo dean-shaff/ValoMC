@@ -17,13 +17,17 @@ namespace util {
 
   void invoke_sub (double dest[3], double v1[3], double v2[3]);
 
-  double invoke_uniform_closed (curandState_t* state);
+  template<typename StateType>
+  double invoke_uniform_closed (StateType* state);
 
-  double invoke_uniform_open (curandState_t* state);
+  template<typename StateType>
+  double invoke_uniform_open (StateType* state);
 
-  double invoke_uniform_half_upper (curandState_t* state);
+  template<typename StateType>
+  double invoke_uniform_half_upper (StateType* state);
 
-  double invoke_uniform_half_lower (curandState_t* state);
+  template<typename StateType>
+  double invoke_uniform_half_lower (StateType* state);
 }
 
 

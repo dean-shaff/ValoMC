@@ -33,6 +33,19 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 set(EXECUTABLE_OUTPUT_PATH  ${PROJECT_SOURCE_DIR})
 
+include(CheckLanguage)
+check_language(CUDA)
+
+if (CMAKE_CUDA_COMPILER)
+  enable_language(CUDA)
+	set(HAVE_CUDA 1)
+else()
+  message(STATUS "No CUDA compiler found")
+  set(HAVE_CUDA 0)
+endif()
+
+find_library(CUDART_LIBRARY cudart HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
 add_executable(MC2D cpp/2d/MC2D.cpp)
 add_executable(MC3D cpp/3d/MC3D.cpp)
 

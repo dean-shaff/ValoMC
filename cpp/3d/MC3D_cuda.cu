@@ -1,3 +1,4 @@
+#include <stdio.h> // for fprintf, stderr
 #include "curand_kernel.h"
 
 #include "MC3D_cuda.hpp"
@@ -40,25 +41,32 @@ namespace util {
     return util::sub (dest, v1, v2);
   }
 
-  double invoke_uniform_closed (curandState_t* state)
+  template<typename StateType>
+  double invoke_uniform_closed (StateType* state)
   {
     return util::uniform_closed (state);
   }
+  template double invoke_uniform_closed (curandState_t* state) ;
 
-  double invoke_uniform_open (curandState_t* state)
+  template<typename StateType>
+  double invoke_uniform_open (StateType* state)
   {
     return util::uniform_open (state);
   }
+  template double invoke_uniform_open (curandState_t* state) ;
 
-  double invoke_uniform_half_upper (curandState_t* state)
+  template<typename StateType>
+  double invoke_uniform_half_upper (StateType* state)
   {
     return util::uniform_half_upper (state);
   }
+  template double invoke_uniform_half_upper (curandState_t* state) ;
 
-  double invoke_uniform_half_lower (curandState_t* state)
+  template<typename StateType>
+  double invoke_uniform_half_lower (StateType* state)
   {
     return util::uniform_half_lower (state);
   }
-
+  template double invoke_uniform_half_lower (curandState_t* state) ;
 
 }

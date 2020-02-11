@@ -1,6 +1,11 @@
+#include <stdio.h> // for fprintf, stderr
+#include <limits>
+
 #include "curand_kernel.h"
 
 #include "MC3D_kernels.cuh"
+
+const double eps = std::numeric_limits<double>::epsilon();
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
@@ -49,17 +54,23 @@ __host__ __device__ int util::ray_triangle_intersects (
   util::sub(edge2, V2, V0);
   util::cross(pvec, D, edge2);
   det = util::dot(edge1, pvec);
-  if ((-eps < det) && (det < eps))
+  if ((-eps < det) && (det < eps)) {
+    // printf("here det\n");
     return 0;
+  }
   inv_det = 1.0 / det;
   util::sub(tvec, O, V0);
   u = util::dot(tvec, pvec) * inv_det;
-  if ((u < 0.0) || (u > 1.0))
+  if ((u < 0.0) || (u > 1.0)) {
+    // printf("here u\n");
     return 0;
+  }
   util::cross(qvec, tvec, edge1);
   v = util::dot(D, qvec) * inv_det;
-  if ((v < 0.0) || (u + v > 1.0))
+  if ((v < 0.0) || (u + v > 1.0)) {
+    // printf("here u + v\n");
     return 0;
+  }
   *t = util::dot(edge2, qvec) * inv_det;
   return 1;
 }
