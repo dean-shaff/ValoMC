@@ -41,32 +41,56 @@ namespace util {
     return util::sub (dest, v1, v2);
   }
 
-  template<typename StateType>
-  double invoke_uniform_closed (StateType* state)
+  void invoke_init_random (
+    unsigned long long seed, unsigned long long sequence,
+    unsigned long long offset, curandState_t state
+  )
   {
-    return util::uniform_closed (state);
+    util::init_random<<<1, 1>>>(seed, sequence, offset, state);
+    gpuErrchk(cudaGetLastError());
+    gpuErrchk(cudaDeviceSynchronize());
   }
-  template double invoke_uniform_closed (curandState_t* state) ;
 
-  template<typename StateType>
-  double invoke_uniform_open (StateType* state)
+  void invoke_uniform_closed (
+    curandState_t state, std::vector<double>& res
+  )
   {
-    return util::uniform_open (state);
-  }
-  template double invoke_uniform_open (curandState_t* state) ;
+    double* device_res;
 
-  template<typename StateType>
-  double invoke_uniform_half_upper (StateType* state)
-  {
-    return util::uniform_half_upper (state);
-  }
-  template double invoke_uniform_half_upper (curandState_t* state) ;
+    gpuErrchk(
+      cudaMalloc((void**) &device_res, res.size()*sizeof(double)));
 
-  template<typename StateType>
-  double invoke_uniform_half_lower (StateType* state)
-  {
-    return util::uniform_half_lower (state);
+    util::random<double><<<1, 1>>>(
+      state, device_res, res.size());
+    gpuErrchk(cudaGetLastError());
+    gpuErrchk(cudaDeviceSynchronize());
+
+    gpuErrchk(
+      cudaMemcpy(res.data(), device_res,
+        res.size()*sizeof(double), cudaMemcpyDeviceToHost));
+    gpuErrchk(
+      cudaFree(device_res));
   }
-  template double invoke_uniform_half_lower (curandState_t* state) ;
+
+  // template<typename StateType>
+  // double invoke_uniform_open (StateType* state)
+  // {
+  //   return util::uniform_open (state);
+  // }
+  // template double invoke_uniform_open (curandState_t* state) ;
+  //
+  // template<typename StateType>
+  // double invoke_uniform_half_upper (StateType* state)
+  // {
+  //   return util::uniform_half_upper (state);
+  // }
+  // template double invoke_uniform_half_upper (curandState_t* state) ;
+  //
+  // template<typename StateType>
+  // double invoke_uniform_half_lower (StateType* state)
+  // {
+  //   return util::uniform_half_lower (state);
+  // }
+  // template double invoke_uniform_half_lower (curandState_t* state) ;
 
 }

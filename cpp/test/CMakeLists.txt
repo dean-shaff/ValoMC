@@ -19,4 +19,5 @@ set(TEST_SOURCES
 add_executable(test_main ${TEST_SOURCES})
 target_include_directories(test_main PUBLIC ${TEST_MAIN_INCLUDE_DIRECTORIES})
 target_link_libraries(test_main PUBLIC ${CUDART_LIBRARY})
-# target_compile_options(test_main PUBLIC -g)
+target_compile_options(test_main PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-G -g -dc>)
+# target_compile_options(test_main PUBLIC -G -g)

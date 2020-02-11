@@ -1,6 +1,6 @@
 #include <random>
 #include <vector>
-// #include <chrono>
+#include <numeric>
 
 #include "catch.hpp"
 
@@ -53,29 +53,36 @@ TEST_CASE("Vector Ray Triangle Intersects produces same result", "[unit][util][c
     t_test = 0.0;
   }
   REQUIRE(nsame == ntest);
-  // std::cerr << "generator.seed()=" << generator.seed() << std::endl;
-  // std::cerr << "res_expected=" << res_expected << ", res_test=" << res_test << std::endl;
-  // std::cerr << "t_expected=" << t_expected << ", t_test=" << t_test << std::endl;
 
 }
 
-TEST_CASE("Random number generators produce same statistics", "[unit][util][cuda]")
+TEST_CASE("Random number generators produce same statistics", "[unit][util][cuda][random]")
 {
-  const unsigned nsamples = 1000;
+  unsigned nsamples = 100;
+  curandState_t state;
+  util::invoke_init_random(1024, 1, 0, state);
+  std::vector<double> cuda_samples(nsamples);
 
   SECTION("Uniform Closed") {
-
+    util::invoke_uniform_closed(state, cuda_samples);
+    double mean = std::accumulate(
+      cuda_samples.begin(), cuda_samples.end(), 0.0) / (double) nsamples;
+    std::cerr << "mean=" << mean << std::endl;
+    // for (unsigned idx=0; idx<cuda_samples.size(); idx++) {
+    //   std::cerr << cuda_samples[idx] << " ";
+    // }
+    // std::cerr << std::endl;
   }
 
-  SECTION("Uniform Open") {
-
-  }
-
-  SECTION("Uniform Half Upper") {
-
-  }
-
-  SECTION("Uniform Half Lower") {
-
-  }
+  // SECTION("Uniform Open") {
+  //
+  // }
+  //
+  // SECTION("Uniform Half Upper") {
+  //
+  // }
+  //
+  // SECTION("Uniform Half Lower") {
+  //
+  // }
 }

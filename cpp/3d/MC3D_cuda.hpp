@@ -1,7 +1,12 @@
 #ifndef __MC3D_cuda_hpp
 #define __MC3D_cuda_hpp
 
+#include <vector>
+
+#include "curand_kernel.h"
+
 namespace util {
+
   int invoke_ray_triangle_intersects (
     double O[3],
     double D[3],
@@ -17,17 +22,22 @@ namespace util {
 
   void invoke_sub (double dest[3], double v1[3], double v2[3]);
 
-  template<typename StateType>
-  double invoke_uniform_closed (StateType* state);
+  void invoke_init_random (
+    unsigned long long seed, unsigned long long sequence,
+    unsigned long long offset, curandState_t state
+  );
 
-  template<typename StateType>
-  double invoke_uniform_open (StateType* state);
+  void invoke_uniform_closed (
+    curandState_t state, std::vector<double>& res);
 
-  template<typename StateType>
-  double invoke_uniform_half_upper (StateType* state);
-
-  template<typename StateType>
-  double invoke_uniform_half_lower (StateType* state);
+  // template<typename StateType>
+  // double invoke_uniform_open (StateType* state);
+  //
+  // template<typename StateType>
+  // double invoke_uniform_half_upper (StateType* state);
+  //
+  // template<typename StateType>
+  // double invoke_uniform_half_lower (StateType* state);
 }
 
 
