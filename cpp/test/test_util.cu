@@ -4,7 +4,7 @@
 
 #include "catch.hpp"
 
-#include "MC3D_cuda.hpp"
+#include "MC3D_util.cuh"
 #include "MC3D.hpp"
 
 TEST_CASE("Vector Ray Triangle Intersects produces same result", "[unit][util][cuda]")
@@ -40,7 +40,7 @@ TEST_CASE("Vector Ray Triangle Intersects produces same result", "[unit][util][c
       expected[2].data(), expected[3].data(),
       expected[4].data(), &t_expected
     );
-    int res_test = util::invoke_ray_triangle_intersects(
+    int res_test = ValoMC::util::ray_triangle_intersects(
       test[0].data(), test[1].data(),
       test[2].data(), test[3].data(),
       test[4].data(), &t_test
@@ -56,33 +56,33 @@ TEST_CASE("Vector Ray Triangle Intersects produces same result", "[unit][util][c
 
 }
 
-TEST_CASE("Random number generators produce same statistics", "[unit][util][cuda][random]")
-{
-  unsigned nsamples = 100;
-  curandState_t state;
-  util::invoke_init_random(1024, 1, 0, state);
-  std::vector<double> cuda_samples(nsamples);
-
-  SECTION("Uniform Closed") {
-    util::invoke_uniform_closed(state, cuda_samples);
-    double mean = std::accumulate(
-      cuda_samples.begin(), cuda_samples.end(), 0.0) / (double) nsamples;
-    std::cerr << "mean=" << mean << std::endl;
-    // for (unsigned idx=0; idx<cuda_samples.size(); idx++) {
-    //   std::cerr << cuda_samples[idx] << " ";
-    // }
-    // std::cerr << std::endl;
-  }
-
-  // SECTION("Uniform Open") {
-  //
-  // }
-  //
-  // SECTION("Uniform Half Upper") {
-  //
-  // }
-  //
-  // SECTION("Uniform Half Lower") {
-  //
-  // }
-}
+// TEST_CASE("Random number generators produce same statistics", "[unit][util][cuda][random]")
+// {
+//   unsigned nsamples = 100;
+//   curandState_t state;
+//   util::invoke_init_random(1024, 1, 0, state);
+//   std::vector<double> cuda_samples(nsamples);
+//
+//   SECTION("Uniform Closed") {
+//     util::invoke_uniform_closed(state, cuda_samples);
+//     double mean = std::accumulate(
+//       cuda_samples.begin(), cuda_samples.end(), 0.0) / (double) nsamples;
+//     std::cerr << "mean=" << mean << std::endl;
+//     // for (unsigned idx=0; idx<cuda_samples.size(); idx++) {
+//     //   std::cerr << cuda_samples[idx] << " ";
+//     // }
+//     // std::cerr << std::endl;
+//   }
+//
+//   // SECTION("Uniform Open") {
+//   //
+//   // }
+//   //
+//   // SECTION("Uniform Half Upper") {
+//   //
+//   // }
+//   //
+//   // SECTION("Uniform Half Lower") {
+//   //
+//   // }
+// }

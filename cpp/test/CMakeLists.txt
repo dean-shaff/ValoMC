@@ -9,9 +9,9 @@ set(TEST_MAIN_INCLUDE_DIRECTORIES
 
 
 set(TEST_SOURCES
-  ${CPP_3D_DIR}/MC3D_kernels.cu
-  ${CPP_3D_DIR}/MC3D_cuda.cu
-  test_util.cpp
+  # ${CPP_3D_DIR}/MC3D_util.cu
+  # test_util.cu
+  test_array.cu
   # test_MC3D.cpp
   test_main.cpp
 )
