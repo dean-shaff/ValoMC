@@ -5,14 +5,48 @@
 #include "GPUArray.cuh"
 
 template<typename T>
-__global__ void iter_array (GPUArray<T>* arr) {
+__global__ void iter_array (T* arr, unsigned size)
+{
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  if (idx == 0) {
+    for (unsigned istep=0; istep<size; istep++) {
+      printf("%f\n", arr[istep]);
+    }
+  }
 }
 
+template<typename T>
+__global__ void iter_array (GPUArray<T>* arr) {
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  printf("%d\n", arr->N);
+  // if (idx == 0) {
+  //   for (unsigned istep=0; istep<arr.N; istep++) {
+  //     printf("%f\n", (*arr)[istep]);
+  //   }
+  // }
+}
+
+TEMPLATE_TEST_CASE(
+  "test GPUArray on device",
+  "[GPUArray][cuda]",
+  float
+)
+{
+  TestType* ptr;
+  unsigned size = 10;
+
+  cudaMalloc((void**)&ptr, size*sizeof(TestType));
+  iter_array<TestType><<<1, 1>>>(ptr, size);
+  cudaFree(ptr);
+
+  GPUArray<TestType> arr;
+  arr.IsGPU = 1;
+  arr.resize(100);
+}
 
 TEMPLATE_TEST_CASE (
   "ensure constructors and copy operators work",
-  "[GPUArray][cuda][unit]",
+  "[GPUArray][cuda][unit][copy][constructor]",
   float
 )
 {
@@ -40,21 +74,22 @@ TEMPLATE_TEST_CASE (
 }
 
 TEMPLATE_TEST_CASE (
-  "Ensure resize works", "[GPUArray][cuda][unit]",
+  "Ensure resize works",
+  "[GPUArray][cuda][unit][resize]",
   float
 )
 {
   SECTION ("resize works on host array") {
     GPUArray<TestType> arrh;
     arrh.resize(10);
-    arrh[0] = 1;
+    // arrh[0] = 1;
   }
 
   SECTION ("resize works on device array") {
     GPUArray<TestType> arrd;
     arrd.IsGPU = 1;
     arrd.resize(10);
-    arrd[0] = 1;
+    // arrd[0] = 1;
   }
 }
 

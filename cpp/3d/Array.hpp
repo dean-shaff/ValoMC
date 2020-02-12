@@ -4,9 +4,11 @@
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)
   #define CUDA 1
   #define CUDA_HOST_DEVICE __host__ __device__
+  #define CUDA_HOST __host__
 #else
   #define CUDA 0
   #define CUDA_HOST_DEVICE
+  #define CUDA_HOST
 #endif
 
 #include <iostream>
@@ -41,7 +43,7 @@ public:
     return *this;
   }
 
-  T* resize(int_fast64_t _Nx, int_fast64_t _Ny, int_fast64_t _Nz){
+  virtual T* resize(int_fast64_t _Nx, int_fast64_t _Ny, int_fast64_t _Nz){
     rank = 3;
     Nx = _Nx; Ny = _Ny; Nz = _Nz; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -49,7 +51,7 @@ public:
     return data;
   }
 
-  T* resize(int_fast64_t _Nx, int_fast64_t _Ny){
+  virtual T* resize(int_fast64_t _Nx, int_fast64_t _Ny){
     rank = 2;
     Nx = _Nx; Ny = _Ny; Nz = 1; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -57,7 +59,7 @@ public:
     return data;
   }
 
-  T* resize(int_fast64_t _Nx){
+  virtual T* resize(int_fast64_t _Nx){
     rank = 1;
     Nx = _Nx; Ny = 1; Nz = 1; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -85,7 +87,8 @@ public:
     return( data[index] );
   }
 
-  void destroy(){
+  virtual void destroy(){
+    std::cerr << "Array::destroy" << std::endl;
     rank = Nx = Ny = Nz = Nxy = N = 0;
     if (!IsRef && data != NULL) {
       deallocate();
@@ -94,15 +97,18 @@ public:
   }
 
   virtual void deallocate () {
+    std::cerr << "Array::deallocate" << std::endl;
     delete[] data;
   }
+
 
   virtual void allocate(int_fast64_t N){
     std::cerr << "Array: allocate: N=" << N << std::endl;
     data = new T[N];
   }
 
-  ~Array(){
+  virtual ~Array() {
+    std::cerr << "Array::~Array" << std::endl;
     destroy();
   }
 
