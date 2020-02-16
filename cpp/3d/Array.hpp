@@ -43,7 +43,7 @@ public:
     return *this;
   }
 
-  virtual T* resize(int_fast64_t _Nx, int_fast64_t _Ny, int_fast64_t _Nz){
+  T* resize(int_fast64_t _Nx, int_fast64_t _Ny, int_fast64_t _Nz){
     rank = 3;
     Nx = _Nx; Ny = _Ny; Nz = _Nz; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -51,7 +51,7 @@ public:
     return data;
   }
 
-  virtual T* resize(int_fast64_t _Nx, int_fast64_t _Ny){
+  T* resize(int_fast64_t _Nx, int_fast64_t _Ny){
     rank = 2;
     Nx = _Nx; Ny = _Ny; Nz = 1; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -59,7 +59,7 @@ public:
     return data;
   }
 
-  virtual T* resize(int_fast64_t _Nx){
+  T* resize(int_fast64_t _Nx){
     rank = 1;
     Nx = _Nx; Ny = 1; Nz = 1; N = Nx * Ny * Nz; Nxy = Nx * Ny;
 
@@ -87,8 +87,8 @@ public:
     return( data[index] );
   }
 
-  virtual void destroy(){
-    std::cerr << "Array::destroy" << std::endl;
+  void destroy(){
+    // std::cerr << "Array::destroy" << std::endl;
     rank = Nx = Ny = Nz = Nxy = N = 0;
     if (!IsRef && data != NULL) {
       deallocate();
@@ -96,20 +96,28 @@ public:
     data = NULL;
   }
 
-  virtual void deallocate () {
-    std::cerr << "Array::deallocate" << std::endl;
+  void deallocate () {
+    // std::cerr << "Array::deallocate" << std::endl;
     delete[] data;
   }
 
 
-  virtual void allocate(int_fast64_t N){
-    std::cerr << "Array: allocate: N=" << N << std::endl;
+  void allocate(int_fast64_t N){
+    // std::cerr << "Array: allocate: N=" << N << std::endl;
     data = new T[N];
   }
 
-  virtual ~Array() {
-    std::cerr << "Array::~Array" << std::endl;
+  ~Array() {
+    // std::cerr << "Array::~Array" << std::endl;
     destroy();
+  }
+
+  /**
+   * Copy contents of this to arr that has been allocated on device.
+   * @param arr [description]
+   */
+  void h2d (Array<T>* arr) {
+
   }
 
   int IsRef;
