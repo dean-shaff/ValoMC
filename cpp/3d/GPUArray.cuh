@@ -25,8 +25,8 @@ public:
    * Copy contents of this to arr that has been allocated on device.
    * @param arr [description]
    */
-  // template<typename ArrayType>
-  __host__ void h2d (GPUArray<T>* arr) {
+  __host__ void h2d (GPUArray<T>* arr)
+  {
 
     // copy properties of this to arr
     gpuErrchk(
@@ -41,6 +41,23 @@ public:
     gpuErrchk(
       cudaMemcpy(&(arr->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
   }
+
+  /**
+   * copy contents of arr to this. Does no error checking to ensure that
+   * the sizes are compatible.
+   * @param arr [description]
+   */
+  __host__ void d2h (GPUArray<T>* arr)
+  {
+    T* ptr;
+    gpuErrchk(
+      cudaMalloc((void**) &ptr, sizeof(T)*(this->N)));
+    gpuErrchk(
+      cudaMemcpy(&ptr, &(arr->data), sizeof(T*), cudaMemcpyDeviceToHost));
+    gpuErrchk(
+      cudaMemcpy(this->data, ptr, sizeof(T)*(this->N), cudaMemcpyDeviceToHost));
+  }
+
 };
 
 

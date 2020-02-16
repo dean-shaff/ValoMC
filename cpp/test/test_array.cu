@@ -9,59 +9,31 @@
 template<typename T>
 __global__ void iter_array (GPUArray<T>* arr) {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
-  printf("%d\n", arr->N);
+  // printf("%d\n", arr->N);
   if (idx == 0) {
     for (unsigned istep=0; istep<arr->N; istep++) {
-      printf("%f\n", (*arr)[istep]);
+      (*arr)[istep];
+      // printf("%f\n", (*arr)[istep]);
     }
   }
 }
 
-// TEMPLATE_TEST_CASE(
-//   "test GPUArray on device",
-//   "[GPUArray][cuda]",
-//   float
-// )
-// {
-//   unsigned size = 10;
-//   std::vector<TestType> vec(size);
-//   for (unsigned idx=0; idx<vec.size(); idx++) {
-//     vec[idx] = static_cast<TestType>(idx);
-//   }
-//
-//   GPUArray<TestType> arr_h;
-//   arr_h.N = size;
-//   GPUArray<TestType>* arr;
-//
-//   gpuErrchk(
-//     cudaMalloc((void**)&arr, sizeof(GPUArray<TestType>)));
-//   gpuErrchk(
-//     cudaMemcpy(arr, &arr_h, sizeof(GPUArray<TestType>), cudaMemcpyHostToDevice));
-//
-//   TestType* ptr;
-//   gpuErrchk(
-//     cudaMalloc((void**) &ptr, sizeof(TestType)*size));
-//   gpuErrchk(
-//     cudaMemcpy(ptr, vec.data(), sizeof(TestType)*size, cudaMemcpyHostToDevice));
-//   gpuErrchk(
-//     cudaMemcpy(&(arr->data), &ptr, sizeof(TestType*), cudaMemcpyHostToDevice));
-//   gpuErrchk(cudaDeviceSynchronize());
-//   // gpuErrchk(
-//   //   cudaMalloc((void**)&(arr->data), sizeof(TestType)*size));
-//   // gpuErrchk(
-//   //   cudaMemcpy(arr->data, vec.data(), sizeof(TestType)*size, cudaMemcpyHostToDevice));
-//
-//   iter_array<TestType><<<1, 1>>>(arr);
-//   gpuErrchk(cudaGetLastError());
-//   // gpuErrchk(cudaFree(arr->data));
-//   gpuErrchk(cudaFree(arr));
-//   // gpuErrchk(cudaFree(ptr));
-//   gpuErrchk(cudaDeviceSynchronize());
-// }
+template<typename T>
+__global__ void fill_array (GPUArray<T>* arr, T val) {
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  printf("fill_array: val=%f\n", val);
+  if (idx > arr->N) {
+    return;
+  }
+  for (unsigned istep=idx; istep<arr->N; istep++) {
+    (*arr)[istep] = val;
+  }
+}
+
 
 TEMPLATE_TEST_CASE(
   "h2d works as expected",
-  "[GPUArray][unit]",
+  "[GPUArray][unit][h2d]",
   float
 )
 {
@@ -73,7 +45,7 @@ TEMPLATE_TEST_CASE(
     }
   }
 
-  GPUArray<TestType> arr*;
+  GPUArray<TestType>* arr;
   cudaMalloc((void**)&arr, sizeof(GPUArray<TestType>));
 
   SECTION ("h2d works in isolation") {
@@ -85,6 +57,37 @@ TEMPLATE_TEST_CASE(
     iter_array<TestType><<<1, 1>>>(arr);
     gpuErrchk(cudaGetLastError());
   }
+  gpuErrchk(cudaFree(arr));
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+TEMPLATE_TEST_CASE(
+  "d2h works as expected",
+  "[GPUArray][unit][d2h]",
+  float
+)
+{
+  TestType val = 1.0;
+  GPUArray<TestType> arr_h;
+  arr_h.resize(10, 2);
+
+  GPUArray<TestType>* arr;
+  cudaMalloc((void**)&arr, sizeof(GPUArray<TestType>));
+  arr_h.h2d(arr);
+
+  fill_array<TestType><<<1, 1>>>(arr, val);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+  arr_h.d2h(arr);
+  //
+  // bool all_close = true;
+  //
+  // for (unsigned idx=0; idx<arr_h.N; idx++) {
+  //   if (arr_h[idx] != val) {
+  //     all_close = false;
+  //   }
+  // }
+  // REQUIRE(all_close == true);
   gpuErrchk(cudaFree(arr));
   gpuErrchk(cudaDeviceSynchronize());
 }

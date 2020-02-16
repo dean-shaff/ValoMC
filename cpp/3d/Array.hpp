@@ -112,14 +112,6 @@ public:
     destroy();
   }
 
-  /**
-   * Copy contents of this to arr that has been allocated on device.
-   * @param arr [description]
-   */
-  void h2d (Array<T>* arr) {
-
-  }
-
   int IsRef;
   int_fast64_t rank, Nx, Ny, Nz, Nxy, N;
   T *data;
