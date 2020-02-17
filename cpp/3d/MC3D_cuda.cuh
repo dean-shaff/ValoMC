@@ -3,233 +3,99 @@
 
 #include <inttypes.h> // for int_fast64_t without std:: prefix
 
+#include "MC3D.hpp"
 #include "MC3D_util.cuh"
+#include "GPUArray.cuh"
 
 namespace ValoMC {
 
-// template<typename ArrayType>
-// class MC3DCUDA {
-//   ArrayType<double>* grid_nodes;
-//   ArrayType<int_fast64_t>* boundary;
-//
-// };
+class MC3DCUDA {
 
-template<typename ArrayType>
-__host__ __device__ void normal (
-  ArrayType<double>* grid_nodes,
-  ArrayType<int_fast64_t>* boundary,
-  int_fast64_t ib,
-  double *normal
-);
+public:
 
-template<typename ArrayType>
-__host__ __device__ void normal (
-  ArrayType<double>* grid_nodes,
-  ArrayType<int_fast64_t>* topology,
-  int_fast64_t el,
-  long f,
-  double *normal
-);
+  MC3DCUDA () {}
 
-/**
- * Determine which face a photon hit
- * @param  grid_nodes [description]
- * @param  topology   [description]
- * @param  phot       photon under test
- * @param  dist       distance the photon can travel before hitting the face
- * @return            -1 if no hit
- *                    0, 1, 2, 3 for faces formed by
- *                    (V0, V1, V2),
- *                    (V0, V1, V3),
- *                    (V0, V2, V3),
- *                    (V1, V2, V3) respectively
- */
-template<typename ArrayType>
-__host__ __device__ int which_face (
-  ArrayType<double>* grid_nodes,
-  ArrayType<int_fast64_t>* topology,
-  Photon* phot,
-  double* dist
-);
+  ~MC3DCUDA () {}
 
-__device__ void create_photon (
-  light_sources,
-  light_sources_cdf,
-  light_sources_mother,
-  HN,
-  grid_nodes,
-  BH,
-  H,
-  BC_light_direction_type,
-  BC_type,
-  n,
-  Photon *phot);
+  __host__ __device__ void normal (
+    int_fast64_t ib,
+    double *normal
+  );
 
-__device__ void scatter_photon (Photon *phot);
+  __host__ __device__ void normal (
+    int_fast64_t el,
+    long f,
+    double *normal
+  );
 
-__device__ void mirror_photon (Photon *phot, int_fast64_t ib);
+  /**
+   * Determine which face a photon hit
+   * @param  grid_nodes [description]
+   * @param  topology   [description]
+   * @param  phot       photon under test
+   * @param  dist       distance the photon can travel before hitting the face
+   * @return            -1 if no hit
+   *                    0, 1, 2, 3 for faces formed by
+   *                    (V0, V1, V2),
+   *                    (V0, V1, V3),
+   *                    (V0, V2, V3),
+   *                    (V1, V2, V3) respectively
+   */
+  __host__ __device__ int which_face (
+    Photon* phot,
+    double* dist
+  );
 
-__device__ void mirror_photon (Photon *phot, int_fast64_t el, long f);
+  __device__ void create_photon ();
 
-__device__ int fresnel_photon (Photon *phot);
+  __device__ void scatter_photon (Photon *phot);
 
-__device__ void propagate_photon ();
+  __device__ void mirror_photon (Photon *phot, int_fast64_t ib);
 
-__global__ void monte_carlo ();
+  __device__ void mirror_photon (Photon *phot, int_fast64_t el, long f);
 
-}
+  __device__ int fresnel_photon (Photon *phot);
 
-template<typename ArrayType>
-__host__ __device__ void ValoMC::normal (
-  ArrayType<double>* grid_nodes, ArrayType<int_fast64_t>* boundary,
-  int_fast64_t ib, double *normal
-)
-{
-  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
+  __device__ void propagate_photon ();
 
-  // Two edges of the face
-  x1 = grid_nodes(boundary(ib, 1), 0) - grid_nodes(boundary(ib, 0), 0);
-  y1 = grid_nodes(boundary(ib, 1), 1) - grid_nodes(boundary(ib, 0), 1);
-  z1 = grid_nodes(boundary(ib, 1), 2) - grid_nodes(boundary(ib, 0), 2);
-  x2 = grid_nodes(boundary(ib, 2), 0) - grid_nodes(boundary(ib, 0), 0);
-  y2 = grid_nodes(boundary(ib, 2), 1) - grid_nodes(boundary(ib, 0), 1);
-  z2 = grid_nodes(boundary(ib, 2), 2) - grid_nodes(boundary(ib, 0), 2);
-  // Face normal by a cross product
-  nx = y1 * z2 - z1 * y2;
-  ny = z1 * x2 - x1 * z2;
-  nz = x1 * y2 - y1 * x2;
-  norm = sqrt(nx * nx + ny * ny + nz * nz);
-  normal[0] = nx / norm;
-  normal[1] = ny / norm;
-  normal[2] = nz / norm;
+  __global__ void monte_carlo ();
+
+
+  GPUArray<int_fast64_t>* get_topology() { return topology; }
+  void set_topology(GPUArray<int_fast64_t>* _topology) { topology = _topology; }
+
+  GPUArray<int_fast64_t>* get_neighborhood() { return neighborhood; }
+  void set_neighborhood (GPUArray<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
+
+  GPUArray<int_fast64_t>* get_boundary() { return boundary; }
+  void set_boundary (GPUArray<int_fast64_t>* _boundary) { boundary = _boundary; }
+
+  GPUArray<double>* get_grid_nodes () { return grid_nodes; }
+  void set_grid_nodes (GPUArray<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
+
+  const MC3D& get_mc3d () { return mc3d; }
+  MC3D& get_mc3d () { return mc3d; }
+
+  void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
+
+private:
+
+  GPUArray<int_fast64_t>* topology;
+  GPUArray<int_fast64_t>* neighborhood;
+  GPUArray<int_fast64_t>* boundary;
+
+  GPUArray<double>* grid_nodes;
+
+  MC3D mc3d;
+
+  /**
+   * Helper function to allocate GPUArray objects in device memory.
+   */
+  void allocate_attributes ();
+
+};
 }
 
 
-template<typename ArrayType>
-__host__ __device__ void ValoMC::normal (
-  ArrayType<double>* grid_nodes, ArrayType<int_fast64_t>* topology,
-  int_fast64_t el, long f, double *normal
-)
-{
-  int i0, i1, i2;
-  if (f == 0)
-  {
-    i0 = 0;
-    i1 = 1;
-    i2 = 2;
-  }
-  else if (f == 1)
-  {
-    i0 = 0;
-    i1 = 1;
-    i2 = 3;
-  }
-  else if (f == 2)
-  {
-    i0 = 0;
-    i1 = 2;
-    i2 = 3;
-  }
-  else if (f == 3)
-  {
-    i0 = 1;
-    i1 = 2;
-    i2 = 3;
-  }
-  else
-  {
-    normal[0] = normal[1] = normal[2] = 0.0;
-    return;
-  }
-
-  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
-  // Two edges of the face
-  x1 = grid_nodes(topology(el, i1), 0) - grid_nodes(topology(el, i0), 0);
-  y1 = grid_nodes(topology(el, i1), 1) - grid_nodes(topology(el, i0), 1);
-  z1 = grid_nodes(topology(el, i1), 2) - grid_nodes(topology(el, i0), 2);
-  x2 = grid_nodes(topology(el, i2), 0) - grid_nodes(topology(el, i0), 0);
-  y2 = grid_nodes(topology(el, i2), 1) - grid_nodes(topology(el, i0), 1);
-  z2 = grid_nodes(topology(el, i2), 2) - grid_nodes(topology(el, i0), 2);
-  // Face normal by cross product
-  nx = y1 * z2 - z1 * y2;
-  ny = z1 * x2 - x1 * z2;
-  nz = x1 * y2 - y1 * x2;
-  norm = sqrt(nx * nx + ny * ny + nz * nz);
-  normal[0] = nx / norm;
-  normal[1] = ny / norm;
-  normal[2] = nz / norm;
-}
-
-
-template<typename ArrayType>
-__host__ __device__ int which_face (
-  ArrayType<double>* grid_nodes,
-  ArrayType<int_fast64_t>* topology,
-  Photon* phot,
-  double* dist,
-)
-{
-
-
-  double V0[3] = {
-    grid_nodes(topology(phot->curel, 0), 0),
-    grid_nodes(topology(phot->curel, 0), 1),
-    grid_nodes(topology(phot->curel, 0), 2)
-  };
-  double V1[3] = {
-    grid_nodes(topology(phot->curel, 1), 0),
-    grid_nodes(topology(phot->curel, 1), 1),
-    grid_nodes(topology(phot->curel, 1), 2)
-  };
-  double V2[3] = {
-    grid_nodes(topology(phot->curel, 2), 0),
-    grid_nodes(topology(phot->curel, 2), 1),
-    grid_nodes(topology(phot->curel, 2), 2)
-  };
-  double V3[3] = {
-    grid_nodes(topology(phot->curel, 3), 0),
-    grid_nodes(topology(phot->curel, 3), 1),
-    grid_nodes(topology(phot->curel, 3), 2)
-  };
-
-  if (phot->curface != 0)
-    if (ValoMC::util::ray_triangle_intersects(phot->pos, phot->dir, V0, V1, V2, dist))
-      if (*dist > 0.0)
-      {
-        phot->nextface = 0;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 0;
-      }
-
-  if (phot->curface != 1)
-    if (ValoMC::util::ray_triangle_intersects(phot->pos, phot->dir, V0, V1, V3, dist))
-      if (*dist > 0.0)
-      {
-        phot->nextface = 1;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 1;
-      }
-
-  if (phot->curface != 2)
-    if (ValoMC::util::ray_triangle_intersects(phot->pos, phot->dir, V0, V2, V3, dist))
-      if (*dist > 0.0)
-      {
-        phot->nextface = 2;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 2;
-      }
-
-  if (phot->curface != 3)
-    if (ValoMC::util::ray_triangle_intersects(phot->pos, phot->dir, V1, V2, V3, dist))
-      if (*dist > 0.0)
-      {
-        phot->nextface = 3;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 3;
-      }
-
-  return -1;
-
-}
 
 #endif

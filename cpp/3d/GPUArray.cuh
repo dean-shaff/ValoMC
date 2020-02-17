@@ -23,7 +23,7 @@ public:
 
   /**
    * Copy contents of this to arr that has been allocated on device.
-   * @param arr [description]
+   * @param arr GPUArray that has been allocated via cudaMalloc
    */
   __host__ void h2d (GPUArray<T>* arr)
   {
@@ -45,7 +45,7 @@ public:
   /**
    * copy contents of arr to this. Does no error checking to ensure that
    * the sizes are compatible.
-   * @param arr [description]
+   * @param arr GPUArray that has been allocated via cudaMalloc
    */
   __host__ void d2h (GPUArray<T>* arr)
   {

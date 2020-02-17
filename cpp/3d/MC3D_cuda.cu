@@ -1,96 +1,155 @@
 #include <stdio.h> // for fprintf, stderr
-#include "curand_kernel.h"
 
-#include "MC3D_cuda.hpp"
-#include "MC3D_kernels.cuh"
+#include "MC3D_cuda.cuh"
+#include "MC3D_util.cuh"
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-   if (code != cudaSuccess) {
-    fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-    if (abort) exit(code);
-   }
+namespace ValoMC {
+
+__host__ __device__ void MC3DCUDA::normal (
+  int_fast64_t ib, double *normal
+)
+{
+  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
+
+  // Two edges of the face
+  x1 = (*grid_nodes)((*boundary)(ib, 1), 0) - (*grid_nodes)((*boundary)(ib, 0), 0);
+  y1 = (*grid_nodes)((*boundary)(ib, 1), 1) - (*grid_nodes)((*boundary)(ib, 0), 1);
+  z1 = (*grid_nodes)((*boundary)(ib, 1), 2) - (*grid_nodes)((*boundary)(ib, 0), 2);
+  x2 = (*grid_nodes)((*boundary)(ib, 2), 0) - (*grid_nodes)((*boundary)(ib, 0), 0);
+  y2 = (*grid_nodes)((*boundary)(ib, 2), 1) - (*grid_nodes)((*boundary)(ib, 0), 1);
+  z2 = (*grid_nodes)((*boundary)(ib, 2), 2) - (*grid_nodes)((*boundary)(ib, 0), 2);
+  // Face normal by a cross product
+  nx = y1 * z2 - z1 * y2;
+  ny = z1 * x2 - x1 * z2;
+  nz = x1 * y2 - y1 * x2;
+  norm = sqrt(nx * nx + ny * ny + nz * nz);
+  normal[0] = nx / norm;
+  normal[1] = ny / norm;
+  normal[2] = nz / norm;
 }
 
 
-namespace util {
-  int invoke_ray_triangle_intersects (
-    double O[3],
-    double D[3],
-    double V0[3],
-    double V1[3],
-    double V2[3],
-    double *t
-  )
+__host__ __device__ void MC3DCUDA::normal (
+  int_fast64_t el, long f, double *normal
+)
+{
+  int i0, i1, i2;
+  if (f == 0)
   {
-    return util::ray_triangle_intersects(O, D, V0, V1, V2, t);
+    i0 = 0;
+    i1 = 1;
+    i2 = 2;
+  }
+  else if (f == 1)
+  {
+    i0 = 0;
+    i1 = 1;
+    i2 = 3;
+  }
+  else if (f == 2)
+  {
+    i0 = 0;
+    i1 = 2;
+    i2 = 3;
+  }
+  else if (f == 3)
+  {
+    i0 = 1;
+    i1 = 2;
+    i2 = 3;
+  }
+  else
+  {
+    normal[0] = normal[1] = normal[2] = 0.0;
+    return;
   }
 
-  void invoke_cross (double dest[3], double v1[3], double v2[3])
-  {
-    return util::cross (dest, v1, v2);
-  }
+  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
+  // Two edges of the face
+  x1 = (*grid_nodes)((*topology)(el, i1), 0) - (*grid_nodes)((*topology)(el, i0), 0);
+  y1 = (*grid_nodes)((*topology)(el, i1), 1) - (*grid_nodes)((*topology)(el, i0), 1);
+  z1 = (*grid_nodes)((*topology)(el, i1), 2) - (*grid_nodes)((*topology)(el, i0), 2);
+  x2 = (*grid_nodes)((*topology)(el, i2), 0) - (*grid_nodes)((*topology)(el, i0), 0);
+  y2 = (*grid_nodes)((*topology)(el, i2), 1) - (*grid_nodes)((*topology)(el, i0), 1);
+  z2 = (*grid_nodes)((*topology)(el, i2), 2) - (*grid_nodes)((*topology)(el, i0), 2);
+  // Face normal by cross product
+  nx = y1 * z2 - z1 * y2;
+  ny = z1 * x2 - x1 * z2;
+  nz = x1 * y2 - y1 * x2;
+  norm = sqrt(nx * nx + ny * ny + nz * nz);
+  normal[0] = nx / norm;
+  normal[1] = ny / norm;
+  normal[2] = nz / norm;
+}
 
-  double invoke_dot (double v1[3], double v2[3])
-  {
-    return util::dot (v1, v2);
-  }
 
-  void invoke_sub (double dest[3], double v1[3], double v2[3])
-  {
-    return util::sub (dest, v1, v2);
-  }
+__host__ __device__ int MC3DCUDA::which_face (
+  Photon* phot,
+  double* dist,
+)
+{
 
-  void invoke_init_random (
-    unsigned long long seed, unsigned long long sequence,
-    unsigned long long offset, curandState_t state
-  )
-  {
-    util::init_random<<<1, 1>>>(seed, sequence, offset, state);
-    gpuErrchk(cudaGetLastError());
-    gpuErrchk(cudaDeviceSynchronize());
-  }
+  double V0[3] = {
+    (*grid_nodes)((*topology)(phot->curel, 0), 0),
+    (*grid_nodes)((*topology)(phot->curel, 0), 1),
+    (*grid_nodes)((*topology)(phot->curel, 0), 2)
+  };
+  double V1[3] = {
+    (*grid_nodes)((*topology)(phot->curel, 1), 0),
+    (*grid_nodes)((*topology)(phot->curel, 1), 1),
+    (*grid_nodes)((*topology)(phot->curel, 1), 2)
+  };
+  double V2[3] = {
+    (*grid_nodes)((*topology)(phot->curel, 2), 0),
+    (*grid_nodes)((*topology)(phot->curel, 2), 1),
+    (*grid_nodes)((*topology)(phot->curel, 2), 2)
+  };
+  double V3[3] = {
+    (*grid_nodes)((*topology)(phot->curel, 3), 0),
+    (*grid_nodes)((*topology)(phot->curel, 3), 1),
+    (*grid_nodes)((*topology)(phot->curel, 3), 2)
+  };
 
-  void invoke_uniform_closed (
-    curandState_t state, std::vector<double>& res
-  )
-  {
-    double* device_res;
+  if (phot->curface != 0)
+    if (util::ray_triangle_intersects(phot->pos, phot->dir, V0, V1, V2, dist))
+      if (*dist > 0.0)
+      {
+        phot->nextface = 0;
+        phot->nextel = (*neighborhood)(phot->curel, phot->nextface);
+        return 0;
+      }
 
-    gpuErrchk(
-      cudaMalloc((void**) &device_res, res.size()*sizeof(double)));
+  if (phot->curface != 1)
+    if (util::ray_triangle_intersects(phot->pos, phot->dir, V0, V1, V3, dist))
+      if (*dist > 0.0)
+      {
+        phot->nextface = 1;
+        phot->nextel = (*neighborhood)(phot->curel, phot->nextface);
+        return 1;
+      }
 
-    util::random<double><<<1, 1>>>(
-      state, device_res, res.size());
-    gpuErrchk(cudaGetLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+  if (phot->curface != 2)
+    if (util::ray_triangle_intersects(phot->pos, phot->dir, V0, V2, V3, dist))
+      if (*dist > 0.0)
+      {
+        phot->nextface = 2;
+        phot->nextel = (*neighborhood)(phot->curel, phot->nextface);
+        return 2;
+      }
 
-    gpuErrchk(
-      cudaMemcpy(res.data(), device_res,
-        res.size()*sizeof(double), cudaMemcpyDeviceToHost));
-    gpuErrchk(
-      cudaFree(device_res));
-  }
+  if (phot->curface != 3)
+    if (util::ray_triangle_intersects(phot->pos, phot->dir, V1, V2, V3, dist))
+      if (*dist > 0.0)
+      {
+        phot->nextface = 3;
+        phot->nextel = (*neighborhood)(phot->curel, phot->nextface);
+        return 3;
+      }
 
-  // template<typename StateType>
-  // double invoke_uniform_open (StateType* state)
-  // {
-  //   return util::uniform_open (state);
-  // }
-  // template double invoke_uniform_open (curandState_t* state) ;
-  //
-  // template<typename StateType>
-  // double invoke_uniform_half_upper (StateType* state)
-  // {
-  //   return util::uniform_half_upper (state);
-  // }
-  // template double invoke_uniform_half_upper (curandState_t* state) ;
-  //
-  // template<typename StateType>
-  // double invoke_uniform_half_lower (StateType* state)
-  // {
-  //   return util::uniform_half_lower (state);
-  // }
-  // template double invoke_uniform_half_lower (curandState_t* state) ;
+  return -1;
+
+}
+
+
 
 }

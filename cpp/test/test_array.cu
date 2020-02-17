@@ -21,7 +21,7 @@ __global__ void iter_array (GPUArray<T>* arr) {
 template<typename T>
 __global__ void fill_array (GPUArray<T>* arr, T val) {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
-  printf("fill_array: val=%f\n", val);
+  // printf("fill_array: val=%f\n", val);
   if (idx > arr->N) {
     return;
   }
@@ -34,7 +34,7 @@ __global__ void fill_array (GPUArray<T>* arr, T val) {
 TEMPLATE_TEST_CASE(
   "h2d works as expected",
   "[GPUArray][unit][h2d]",
-  float
+  float, double
 )
 {
   GPUArray<TestType> arr_h;
@@ -64,7 +64,7 @@ TEMPLATE_TEST_CASE(
 TEMPLATE_TEST_CASE(
   "d2h works as expected",
   "[GPUArray][unit][d2h]",
-  float
+  float, double
 )
 {
   TestType val = 1.0;
@@ -79,15 +79,16 @@ TEMPLATE_TEST_CASE(
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaDeviceSynchronize());
   arr_h.d2h(arr);
-  //
-  // bool all_close = true;
-  //
-  // for (unsigned idx=0; idx<arr_h.N; idx++) {
-  //   if (arr_h[idx] != val) {
-  //     all_close = false;
-  //   }
-  // }
-  // REQUIRE(all_close == true);
+
+  bool all_close = true;
+
+  for (unsigned idx=0; idx<arr_h.N; idx++) {
+    if (arr_h[idx] != val) {
+      all_close = false;
+    }
+  }
+  REQUIRE(all_close == true);
+
   gpuErrchk(cudaFree(arr));
   gpuErrchk(cudaDeviceSynchronize());
 }
