@@ -86,13 +86,44 @@ private:
 
   GPUArray<double>* grid_nodes;
 
+  GPUArray<int>* LightSources;
+  GPUArray<int>* LightSourcesMother;
+  GPUArray<double>* LightSourcesCDF;
+
+  GPUArray<char>* BCLightDirectionType;
+  GPUArray<double>* BCLNormal;
+  GPUArray<char>* BCType;
+
+  GPUArray<double>* absorption; // mua
+  GPUArray<double>* scattering; // mus
+  GPUArray<double>* scattering_inhom; // g, scattering inhomogeneity
+  GPUArray<double>* idx_refrc; // n,  index of refraction
+  GPUArray<double>* k; // k, wave number
+  GPUArray<double>* scattering_inhom_2; // g2, scattering inhomogeneity squared
+
+  GPUArray<double>* pow_den_vol_real; // ER
+  GPUArray<double>* pow_den_vol_imag; // EI
+
+  GPUArray<double>* pow_den_boun_real; // EBR
+  GPUArray<double>* pow_den_boun_imag; // EBI
+
+  double omega;
+
   MC3D mc3d;
+
+  // curand states for generating random numbers
+  curandState_t* states;
 
   /**
    * Helper function to allocate GPUArray objects in device memory.
    */
   void allocate_attributes ();
 
+  /**
+   * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
+   * @return unsigned int in bytes
+   */
+  unsigned long total_memory_usage ();
 };
 }
 
