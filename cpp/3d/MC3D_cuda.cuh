@@ -46,17 +46,17 @@ public:
     double* dist
   );
 
-  __device__ void create_photon ();
+  __device__ void create_photon (curandState_t* state);
 
-  __device__ void scatter_photon (Photon *phot);
+  __device__ void scatter_photon (Photon *phot, curandState_t* state);
 
-  __device__ void mirror_photon (Photon *phot, int_fast64_t ib);
+  __host__ __device__ void mirror_photon (Photon *phot, int_fast64_t ib);
 
-  __device__ void mirror_photon (Photon *phot, int_fast64_t el, long f);
+  __host__ __device__ void mirror_photon (Photon *phot, int_fast64_t el, long f);
 
-  __device__ int fresnel_photon (Photon *phot);
+  __device__ int fresnel_photon (Photon *phot, curandState_t* state);
 
-  __device__ void propagate_photon ();
+  __device__ void propagate_photon (curandState_t* state);
 
   __global__ void monte_carlo ();
 
@@ -80,25 +80,26 @@ public:
 
 private:
 
-  GPUArray<int_fast64_t>* topology;
-  GPUArray<int_fast64_t>* neighborhood;
-  GPUArray<int_fast64_t>* boundary;
+  GPUArray<int_fast64_t>* topology; // H
+  GPUArray<int_fast64_t>* neighborhood; // HN
+  GPUArray<int_fast64_t>* boundary; // BH
 
-  GPUArray<double>* grid_nodes;
+  GPUArray<double>* grid_nodes; // r
 
-  GPUArray<int>* LightSources;
-  GPUArray<int>* LightSourcesMother;
-  GPUArray<double>* LightSourcesCDF;
+  GPUArray<int>* light_sources; // LightSources
+  GPUArray<int>* light_sources_mother; // LightSourcesMother
+  GPUArray<double>* light_sources_cdf; // LightSourcesCDF
 
-  GPUArray<char>* BCLightDirectionType;
-  GPUArray<double>* BCLNormal;
-  GPUArray<char>* BCType;
+  GPUArray<char>* BC_light_direction_type; // BCLightDirectionType
+  GPUArray<double>* BCL_normal; // BCLNormal
+  GPUArray<double>* BCn; // BCn
+  GPUArray<char>* BC_type; // BCType
 
   GPUArray<double>* absorption; // mua
   GPUArray<double>* scattering; // mus
   GPUArray<double>* scattering_inhom; // g, scattering inhomogeneity
   GPUArray<double>* idx_refrc; // n,  index of refraction
-  GPUArray<double>* k; // k, wave number
+  GPUArray<double>* wave_number; // k, wave number
   GPUArray<double>* scattering_inhom_2; // g2, scattering inhomogeneity squared
 
   GPUArray<double>* pow_den_vol_real; // ER

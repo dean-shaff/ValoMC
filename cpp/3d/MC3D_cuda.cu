@@ -5,6 +5,34 @@
 
 namespace ValoMC {
 
+  // GPUArray<int_fast64_t> H = *topology;
+  // GPUArray<int_fast64_t> HN = *neighborhood;
+  // GPUArray<int_fast64_t> BH = *boundary;
+  //
+  // GPUArray<double> r = *grid_nodes;
+  // GPUArray<int> LightSources = *light_source;
+  // GPUArray<int> LightSourcesMother = *light_sources_mother;
+  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  //
+  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
+  // GPUArray<char> BCType = *BC_type;
+  // GPUArray<double> BCLNormal = *BCL_normal;
+  // GPUArray<double> BCn = *BCn;
+
+  // GPUArray<double> mua = *absorption;
+  // GPUArray<double> mus = *scattering;
+  // GPUArray<double> g = *scattering_inhom;
+  // GPUArray<double> n = *idx_refrc;
+  // GPUArray<double> k = *wave_number;
+  // GPUArray<double> g2 = *scattering_inhom_2;
+  //
+  // GPUArray<double> ER = *pow_den_vol_real;
+  // GPUArray<double> EI = *pow_den_vol_imag;
+  //
+  // GPUArray<double> EBR = *pow_den_boun_real;
+  // GPUArray<double> EBI = *pow_den_boun_imag;
+
+
 __host__ __device__ void MC3DCUDA::normal (
   int_fast64_t ib, double *normal
 )
@@ -150,17 +178,32 @@ __host__ __device__ int MC3DCUDA::which_face (
 }
 
 
-__device__ void MC3DCUDA::create_photon ()
+__device__ void MC3DCUDA::create_photon (curandState_t* state)
 {
-  double xi = UnifClosed();
+  double xi = rand_closed(state);
 
   double n[3], t[3], norm;
 
+  GPUArray<int_fast64_t> H = *topology;
+  GPUArray<int_fast64_t> HN = *neighborhood;
+  GPUArray<int_fast64_t> BH = *boundary;
+
+  GPUArray<double> r = *grid_nodes;
+  GPUArray<int> LightSources = *light_source;
+  GPUArray<int> LightSourcesMother = *light_sources_mother;
+  GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+
+  GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
+  GPUArray<char> BCType = *BC_type;
+  GPUArray<double> BCLNormal = *BCL_normal;
+
   // Find boundary element index that will create this photon
   int ib;
-  for (ib = 0; ib < LightSources.Nx; ib++)
-    if (xi < LightSourcesCDF[ib])
+  for (ib = 0; ib < LightSources.Nx; ib++) {
+    if (xi < LightSourcesCDF[ib]) {
       break;
+    }
+  }
   // Creator faces mother element
   phot->curel = LightSourcesMother[ib];
   // Creator face
@@ -177,7 +220,7 @@ __device__ void MC3DCUDA::create_photon ()
     phot->curface = -1;
 
   // Initial photon position uniformly distributed on the boundary element
-  double w0 = UnifOpen(), w1 = UnifOpen(), w2 = UnifOpen();
+  double w0 = rand_open(state), w1 = rand_open(state), w2 = rand_open(state);
   phot->pos[0] = (w0 * r(BH(ib, 0), 0) + w1 * r(BH(ib, 1), 0) + w2 * r(BH(ib, 2), 0)) / (w0 + w1 + w2);
   phot->pos[1] = (w0 * r(BH(ib, 0), 1) + w1 * r(BH(ib, 1), 1) + w2 * r(BH(ib, 2), 1)) / (w0 + w1 + w2);
   phot->pos[2] = (w0 * r(BH(ib, 0), 2) + w1 * r(BH(ib, 1), 2) + w2 * r(BH(ib, 2), 2)) / (w0 + w1 + w2);
@@ -222,8 +265,8 @@ __device__ void MC3DCUDA::create_photon ()
       double dot, r[3], theta, u;
       do
       {
-        theta = 2.0 * M_PI * UnifHalfUp();
-        u = 2.0 * UnifClosed() - 1.0;
+        theta = 2.0 * M_PI * rand_open_up(state);
+        u = 2.0 * rand_closed(state) - 1.0;
         r[0] = sqrt(1.0 - pow(u, 2)) * cos(theta);
         r[1] = sqrt(1.0 - pow(u, 2)) * sin(theta);
         r[2] = u;
@@ -246,8 +289,8 @@ __device__ void MC3DCUDA::create_photon ()
       e2[1] = r(BH(ib, 2), 1) - r(BH(ib, 0), 1);
       e2[2] = r(BH(ib, 2), 2) - r(BH(ib, 0), 2);
       // Cosinically distributed spherical coordinates
-      phi = asin(2.0 * UnifOpen() - 1.0);
-      theta = 2.0 * M_PI * UnifClosed();
+      phi = asin(2.0 * rand_open(state) - 1.0);
+      theta = 2.0 * M_PI * rand_closed(state);
       // Propagation direction of generated photon (random draw around x = 1, y = z = 0 direction with cosinic direction distribution)
       f[0] = cos(phi);
       f[1] = cos(theta) * sin(phi);
@@ -317,8 +360,8 @@ __device__ void MC3DCUDA::create_photon ()
       double dot, r[3], theta, u;
       do
       {
-        theta = 2.0 * M_PI * UnifHalfUp();
-        u = 2.0 * UnifClosed() - 1.0;
+        theta = 2.0 * M_PI * rand_open_up(state);
+        u = 2.0 * rand_closed(state) - 1.0;
         r[0] = sqrt(1.0 - pow(u, 2)) * cos(theta);
         r[1] = sqrt(1.0 - pow(u, 2)) * sin(theta);
         r[2] = u;
@@ -341,8 +384,8 @@ __device__ void MC3DCUDA::create_photon ()
       e2[1] = r(BH(ib, 2), 1) - r(BH(ib, 0), 1);
       e2[2] = r(BH(ib, 2), 2) - r(BH(ib, 0), 2);
       // Cosinically distributed spherical coordinates
-      phi = asin(2.0 * UnifOpen() - 1.0);
-      theta = 2.0 * M_PI * UnifClosed();
+      phi = asin(2.0 * rand_open(state) - 1.0);
+      theta = 2.0 * M_PI * rand_closed(state);
       // Propagation direction of generated photon (random draw around x = 1, y = z = 0 direction with cosinic direction distribution)
       f[0] = cos(phi);
       f[1] = cos(theta) * sin(phi);
@@ -387,24 +430,27 @@ __device__ void MC3DCUDA::create_photon ()
   phot->phase = phase0;
 }
 
-__device__ void MC3DCUDA::scatter_photon (Photon *phot)
+__device__ void MC3DCUDA::scatter_photon (Photon *phot, curandState_t* state)
 {
   double xi, theta, phi;
   double dxn, dyn, dzn;
 
+  GPUArray<double> g = *scattering_inhom;
+  GPUArray<double> g2 = *scattering_inhom_2;
+
   // Henye-Greenstein scattering
   if (g[phot->curel] != 0.0)
   {
-    xi = UnifClosed();
+    xi = rand_closed(state);
     if ((0.0 < xi) && (xi < 1.0))
       theta = acos((1.0 + g2[phot->curel] - pow((1.0 - g2[phot->curel]) / (1.0 - g[phot->curel] * (1.0 - 2.0 * xi)), 2)) / (2.0 * g[phot->curel]));
     else
       theta = (1.0 - xi) * M_PI;
   }
   else
-    theta = acos(2.0 * UnifClosed() - 1.0);
+    theta = acos(2.0 * rand_closed(state) - 1.0);
 
-  phi = 2.0 * M_PI * UnifClosed();
+  phi = 2.0 * M_PI * rand_closed(state);
 
   if (fabs(phot->dir[2]) > 0.999)
   {
@@ -432,7 +478,7 @@ __device__ void MC3DCUDA::scatter_photon (Photon *phot)
   phot->curface = -1;
 }
 
-__device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t ib)
+__host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t ib)
 {
   double n[3], cdot;
   normal(ib, n);
@@ -442,7 +488,7 @@ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t ib)
   phot->dir[2] -= 2.0 * cdot * n[2];
 }
 
-__device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el, long f)
+__host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el, long f)
 {
   double n[3], cdot;
   normal(el, f, n);
@@ -452,8 +498,34 @@ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el, long f)
   phot->dir[2] -= 2.0 * cdot * n[2];
 }
 
-__device__ int MC3DCUDA::fresnel_photon (Photon *phot)
+__device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
 {
+  // GPUArray<int_fast64_t> H = *topology;
+  // GPUArray<int_fast64_t> HN = *neighborhood;
+  // GPUArray<int_fast64_t> BH = *boundary;
+  //
+  // GPUArray<double> r = *grid_nodes;
+  // GPUArray<int> LightSources = *light_source;
+  // GPUArray<int> LightSourcesMother = *light_sources_mother;
+  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  //
+  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
+  // GPUArray<char> BCType = *BC_type;
+  // GPUArray<double> BCLNormal = *BCL_normal;
+
+  // GPUArray<double> mua = *absorption;
+  // GPUArray<double> mus = *scattering;
+  // GPUArray<double> g = *scattering_inhom;
+  // GPUArray<double> n = *idx_refrc;
+  // GPUArray<double> k = *wave_number;
+  // GPUArray<double> g2 = *scattering_inhom_2;
+  //
+  // GPUArray<double> ER = *pow_den_vol_real;
+  // GPUArray<double> EI = *pow_den_vol_imag;
+  //
+  // GPUArray<double> EBR = *pow_den_boun_real;
+  // GPUArray<double> EBI = *pow_den_boun_imag;
+
   // Likelyhood of reflection:
   //   R = 0.5 ( sin^2(theta_i - theta_t) / sin^2(theta_i + theta_t) + tan^2(theta_i - theta_t) / tan^2(theta_i + theta_t))
   //
@@ -507,7 +579,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot)
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
-  double xi = UnifClosed();
+  double xi = rand_closed(state);
 
   if (xi <= R)
   {
@@ -536,7 +608,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot)
   return 0;
 }
 
-__device__ void MC3DCUDA::propagate_photon ()
+__device__ void MC3DCUDA::propagate_photon (curandState_t* state)
 {
   double prop, dist, ds;
   int_fast64_t ib;
@@ -545,7 +617,7 @@ __device__ void MC3DCUDA::propagate_photon ()
   while (1)
   {
     // Draw the propagation distance
-    prop = -log(UnifOpen()) / mus[phot->curel];
+    prop = -log(rand_open(state)) / mus[phot->curel];
 
     // Propagate until the current propagation distance runs out (and a scattering will occur)
     while (1)
@@ -661,13 +733,13 @@ __device__ void MC3DCUDA::propagate_photon ()
       if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
       {
         // Draw new propagation distance -- otherwise photon might travel without scattering
-        prop = -log(UnifOpen()) / mus[phot->nextel];
+        prop = -log(rand_open(state)) / mus[phot->nextel];
       }
 
       // Test for surival of the photon via roulette
       if (phot->weight < weight0)
       {
-        if (UnifClosed() > chance)
+        if (rand_closed(state) > chance)
           return;
         phot->weight /= chance;
       }
