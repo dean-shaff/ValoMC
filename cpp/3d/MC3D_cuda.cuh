@@ -56,7 +56,7 @@ public:
 
   __device__ int fresnel_photon (Photon *phot, curandState_t* state);
 
-  __device__ void propagate_photon (curandState_t* state);
+  __device__ void propagate_photon (Photon *phot, curandState_t* state);
 
   __global__ void monte_carlo ();
 

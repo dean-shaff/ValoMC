@@ -500,31 +500,9 @@ __host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el,
 
 __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
 {
-  // GPUArray<int_fast64_t> H = *topology;
-  // GPUArray<int_fast64_t> HN = *neighborhood;
-  // GPUArray<int_fast64_t> BH = *boundary;
-  //
-  // GPUArray<double> r = *grid_nodes;
-  // GPUArray<int> LightSources = *light_source;
-  // GPUArray<int> LightSourcesMother = *light_sources_mother;
-  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
-  //
-  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
-  // GPUArray<char> BCType = *BC_type;
-  // GPUArray<double> BCLNormal = *BCL_normal;
 
-  // GPUArray<double> mua = *absorption;
-  // GPUArray<double> mus = *scattering;
-  // GPUArray<double> g = *scattering_inhom;
-  // GPUArray<double> n = *idx_refrc;
-  // GPUArray<double> k = *wave_number;
-  // GPUArray<double> g2 = *scattering_inhom_2;
-  //
-  // GPUArray<double> ER = *pow_den_vol_real;
-  // GPUArray<double> EI = *pow_den_vol_imag;
-  //
-  // GPUArray<double> EBR = *pow_den_boun_real;
-  // GPUArray<double> EBI = *pow_den_boun_imag;
+  GPUArray<double> BCn = *BCn;
+  GPUArray<double> n = *idx_refrc;
 
   // Likelyhood of reflection:
   //   R = 0.5 ( sin^2(theta_i - theta_t) / sin^2(theta_i + theta_t) + tan^2(theta_i - theta_t) / tan^2(theta_i + theta_t))
@@ -608,11 +586,38 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
   return 0;
 }
 
-__device__ void MC3DCUDA::propagate_photon (curandState_t* state)
+__device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 {
   double prop, dist, ds;
   int_fast64_t ib;
   // Propagate until the photon dies
+
+  // GPUArray<int_fast64_t> H = *topology;
+  GPUArray<int_fast64_t> HN = *neighborhood;
+  // GPUArray<int_fast64_t> BH = *boundary;
+  //
+  // GPUArray<double> r = *grid_nodes;
+  // GPUArray<int> LightSources = *light_source;
+  // GPUArray<int> LightSourcesMother = *light_sources_mother;
+  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  //
+  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
+  GPUArray<char> BCType = *BC_type;
+  // GPUArray<double> BCLNormal = *BCL_normal;
+  // GPUArray<double> BCn = *BCn;
+
+  GPUArray<double> mua = *absorption;
+  GPUArray<double> mus = *scattering;
+  // GPUArray<double> g = *scattering_inhom;
+  GPUArray<double> n = *idx_refrc;
+  GPUArray<double> k = *wave_number;
+  // GPUArray<double> g2 = *scattering_inhom_2;
+  //
+  GPUArray<double> ER = *pow_den_vol_real;
+  GPUArray<double> EI = *pow_den_vol_imag;
+
+  GPUArray<double> EBR = *pow_den_boun_real;
+  GPUArray<double> EBI = *pow_den_boun_imag;
 
   while (1)
   {
@@ -623,7 +628,7 @@ __device__ void MC3DCUDA::propagate_photon (curandState_t* state)
     while (1)
     {
       // Check through which face the photon will exit the current element
-      if (WhichFace(phot, &dist) == -1)
+      if (which_face(phot, &dist) == -1)
       {
         loss++;
         return;
@@ -703,7 +708,7 @@ __device__ void MC3DCUDA::propagate_photon (curandState_t* state)
         if ((BCType[ib] == 'm') || (BCType[ib] == 'L') || (BCType[ib] == 'I') || (BCType[ib] == 'C'))
         {
           // Mirror boundary condition -- Reflect the photon
-          MirrorPhoton(phot, ib);
+          mirror_photon(phot, ib, state);
           phot->curface = phot->nextface;
           continue;
         }
@@ -712,7 +717,7 @@ __device__ void MC3DCUDA::propagate_photon (curandState_t* state)
           // Absorbing (a, l, i and c)
           // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
           if (BCn[ib] > 0.0)
-            if (FresnelPhoton(phot))
+            if (fresnel_photon(phot, state))
               continue;
 
           if (omega <= 0.0)
@@ -747,7 +752,7 @@ __device__ void MC3DCUDA::propagate_photon (curandState_t* state)
       // Fresnel transmission/reflection
       if (n[phot->curel] != n[phot->nextel])
       {
-        if (FresnelPhoton(phot))
+        if (fresnel_photon(phot, state))
           continue;
       }
 
@@ -777,7 +782,7 @@ __device__ void MC3DCUDA::propagate_photon (curandState_t* state)
 
     // Scatter photon
     if (mus[phot->curel] > 0.0)
-      ScatterPhoton(phot);
+      scatter_photon(phot, state);
   }
 }
 
