@@ -5,6 +5,38 @@
 #include "GPUArray.cuh"
 
 
+class ContainsArray {
+public:
+  ContainsArray () {is_allocated = false;}
+  ~ContainsArray () {
+    if (is_allocated) {
+      cudaFree(arr);
+    }
+  }
+
+  GPUArray<double>* arr;
+
+  void allocate () {
+    cudaMalloc((void**)&arr, sizeof(GPUArray<double>));
+    is_allocated = true;
+  }
+
+private:
+
+  bool is_allocated;
+};
+
+__global__ void iter_obj (ContainsArray con, int* result)
+{
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  GPUArray<double> arr = *(con.arr);
+  if (idx == 0) {
+    for (unsigned istep=0; istep<arr.N; istep++) {
+      arr[istep];
+      *result += 1;
+    }
+  }
+}
 
 template<typename T>
 __global__ void iter_array (GPUArray<T>* arr) {
@@ -30,6 +62,30 @@ __global__ void fill_array (GPUArray<T>* arr, T val) {
   }
 }
 
+TEST_CASE (
+  "Can call kernel on object containing pointers to GPUArrays",
+  "[GPUArray][ContainsArray]"
+)
+{
+  ContainsArray con;
+  GPUArray<double> arr_h;
+  arr_h.resize(10, 2);
+  for (unsigned idx=0; idx<arr_h.N; idx++) {
+    arr_h[idx] = 1.0;
+  }
+  con.allocate();
+  arr_h.h2d(con.arr);
+  int* result;
+  int result_h = 0.0;
+  cudaMalloc((void**)&result, sizeof(int));
+  iter_obj<<<1, 1>>>(con, result);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaMemcpy(&result_h, result, sizeof(int), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaFree(result));
+  gpuErrchk(cudaDeviceSynchronize());
+  REQUIRE(result_h == 20);
+}
+
 
 TEMPLATE_TEST_CASE(
   "h2d works as expected",
@@ -46,7 +102,7 @@ TEMPLATE_TEST_CASE(
   }
 
   GPUArray<TestType>* arr;
-  cudaMalloc((void**)&arr, sizeof(GPUArray<TestType>));
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(GPUArray<TestType>)));
 
   SECTION ("h2d works in isolation") {
     arr_h.h2d(arr);

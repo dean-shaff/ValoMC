@@ -40,6 +40,8 @@ public:
       cudaMemcpy(ptr, this->data, sizeof(T)*(this->N), cudaMemcpyHostToDevice));
     gpuErrchk(
       cudaMemcpy(&(arr->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
+    // gpuErrchk(
+    //   cudaFree(ptr));
   }
 
   /**
@@ -56,6 +58,8 @@ public:
       cudaMemcpy(&ptr, &(arr->data), sizeof(T*), cudaMemcpyDeviceToHost));
     gpuErrchk(
       cudaMemcpy(this->data, ptr, sizeof(T)*(this->N), cudaMemcpyDeviceToHost));
+    // gpuErrchk(
+    //   cudaFree(ptr));
   }
 
 };

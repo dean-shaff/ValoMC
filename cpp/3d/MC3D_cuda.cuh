@@ -58,9 +58,6 @@ public:
 
   __device__ void propagate_photon (Photon *phot, curandState_t* state);
 
-  __global__ void monte_carlo ();
-
-
   GPUArray<int_fast64_t>* get_topology() { return topology; }
   void set_topology(GPUArray<int_fast64_t>* _topology) { topology = _topology; }
 

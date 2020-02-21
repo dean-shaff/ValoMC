@@ -5,6 +5,11 @@
 
 namespace ValoMC {
 
+  __global__ monte_carlo (MC3DCUDA mc3d) {
+
+  }
+
+
   // GPUArray<int_fast64_t> H = *topology;
   // GPUArray<int_fast64_t> HN = *neighborhood;
   // GPUArray<int_fast64_t> BH = *boundary;

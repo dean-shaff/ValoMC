@@ -19,6 +19,7 @@
 template <class T> class Array{
 public:
 
+  CUDA_HOST_DEVICE
   Array(){
     IsRef = 0;
     rank = 0;
@@ -26,6 +27,7 @@ public:
     data = NULL;
   }
 
+  CUDA_HOST_DEVICE
   Array(Array<T> &ref){
     IsRef = 1;
     rank = ref.rank;
@@ -33,6 +35,7 @@ public:
     data = ref.data;
   }
 
+  CUDA_HOST_DEVICE
   Array &operator=(const Array &ref){
     if(this != &ref){
       IsRef = 1;
@@ -87,6 +90,7 @@ public:
     return( data[index] );
   }
 
+  CUDA_HOST_DEVICE
   void destroy(){
     // std::cerr << "Array::destroy" << std::endl;
     rank = Nx = Ny = Nz = Nxy = N = 0;
@@ -96,17 +100,20 @@ public:
     data = NULL;
   }
 
+  CUDA_HOST_DEVICE
   void deallocate () {
     // std::cerr << "Array::deallocate" << std::endl;
     delete[] data;
   }
 
 
+  CUDA_HOST_DEVICE
   void allocate(int_fast64_t N){
     // std::cerr << "Array: allocate: N=" << N << std::endl;
     data = new T[N];
   }
 
+  CUDA_HOST_DEVICE
   ~Array() {
     // std::cerr << "Array::~Array" << std::endl;
     destroy();
