@@ -58,22 +58,30 @@ public:
 
   __device__ void propagate_photon (Photon *phot, curandState_t* state);
 
-  GPUArray<int_fast64_t>* get_topology() { return topology; }
-  void set_topology(GPUArray<int_fast64_t>* _topology) { topology = _topology; }
+  // GPUArray<int_fast64_t>* get_topology() { return topology; }
+  // void set_topology(GPUArray<int_fast64_t>* _topology) { topology = _topology; }
+  //
+  // GPUArray<int_fast64_t>* get_neighborhood() { return neighborhood; }
+  // void set_neighborhood (GPUArray<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
+  //
+  // GPUArray<int_fast64_t>* get_boundary() { return boundary; }
+  // void set_boundary (GPUArray<int_fast64_t>* _boundary) { boundary = _boundary; }
+  //
+  // GPUArray<double>* get_grid_nodes () { return grid_nodes; }
+  // void set_grid_nodes (GPUArray<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
 
-  GPUArray<int_fast64_t>* get_neighborhood() { return neighborhood; }
-  void set_neighborhood (GPUArray<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
-
-  GPUArray<int_fast64_t>* get_boundary() { return boundary; }
-  void set_boundary (GPUArray<int_fast64_t>* _boundary) { boundary = _boundary; }
-
-  GPUArray<double>* get_grid_nodes () { return grid_nodes; }
-  void set_grid_nodes (GPUArray<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
-
-  const MC3D& get_mc3d () { return mc3d; }
+  const MC3D& get_mc3d () const { return mc3d; }
   MC3D& get_mc3d () { return mc3d; }
 
   void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
+
+  void set_seed (unsigned long _seed) { seed = _seed; mc3d.seed = _seed; };
+
+  unsigned long get_seed () const { return seed; }
+
+  void set_states_size (unsigned _states_size) { states_size = _states_size; }
+
+  unsigned get_states_size () const { return states_size; }
 
 private:
 
@@ -111,6 +119,12 @@ private:
 
   // curand states for generating random numbers
   curandState_t* states;
+  // number of states
+  unsigned states_size;
+
+  // random number seed
+  unsigned long seed;
+
 
   /**
    * Helper function to allocate GPUArray objects in device memory.
@@ -121,7 +135,7 @@ private:
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
    * @return unsigned int in bytes
    */
-  unsigned long total_memory_usage ();
+  unsigned long get_total_memory_usage ();
 };
 }
 

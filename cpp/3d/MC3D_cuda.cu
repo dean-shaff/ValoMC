@@ -5,8 +5,33 @@
 
 namespace ValoMC {
 
-  __global__ monte_carlo (MC3DCUDA mc3d) {
+  __global__ init_state (MC3DCUDA mc3d) {
+    const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
+    const unsigned total_size_x = gridDim.x*blockDim.x;
+    if (idx > mc3d.states_size) {
+      return;
+    }
 
+    for (unsigned istate=idx; istate<mc3d.states_size; istate+=total_size_x) {
+      curand_init(mc3d.seed, 0, idx, mc3d.states[istate]);
+    }
+  }
+
+
+  __global__ monte_carlo (MC3DCUDA mc3d) {
+    const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
+    const unsigned total_size_x = gridDim.x*blockDim.x;
+    const unsigned increment_size = total_size_x > mc3d.states_size ? mc3d.states_size: total_size_x;
+
+    if (idx > increment_size) {
+      return;
+    }
+    curandState_t local_state = mc3d.states[idx];
+    Photon* photon;
+    for (unsigned iphoton=idx; iphoton<mc3d.nphotons; iphotons+=increment_size) {
+      mc3d.create_photon(photon, local_state);
+      mc3d.propagate_photon(photon, local_state);
+    }
   }
 
 
@@ -653,11 +678,13 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
         // Unmodulated light
         if (mua[phot->curel] > 0.0)
         {
-          ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+          // ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+          atomicAdd(ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
         }
         else
         {
-          ER[phot->curel] += phot->weight * ds;
+          // ER[phot->curel] += phot->weight * ds;
+          atomicAdd(ER[phot->curel], phot->weight * ds);
         }
       }
       else
@@ -688,8 +715,10 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 	    pretty( simplify( imag(f) ) )
 	*/
 
-        ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-        EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+        // ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+        // EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+        atomicAdd(ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        atomicAdd(EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
 
         phot->phase += k[phot->curel] * ds;
       }
@@ -727,12 +756,16 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 
           if (omega <= 0.0)
           {
-            EBR[ib] += phot->weight;
+            // EBR[ib] += phot->weight;
+            atomicAdd(EBR[ib], phot->weight);
           }
           else
           {
-            EBR[ib] += phot->weight * cos(phot->phase);
-            EBI[ib] -= phot->weight * sin(phot->phase);
+            // EBR[ib] += phot->weight * cos(phot->phase);
+            // EBI[ib] -= phot->weight * sin(phot->phase);
+            atomicAdd(EBR[ib], phot->weight * cos(phot->phase));
+            atomicAdd(EBI[ib], -phot->weight * sin(phot->phase));
+
           }
           // Photon propagation will terminate
           return;
@@ -791,5 +824,40 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
   }
 }
 
+
+void MC3D::allocate_attributes () {}
+
+unsigned long MC3D::get_total_memory_usage () {
+  unsigned long total_memory_usage = 0;
+  total_memory_usage += sizeof(int_fast64_t) * mc3d.H.N;
+  total_memory_usage += sizeof(int_fast64_t) * mc3d.HN.N;
+  total_memory_usage += sizeof(int_fast64_t) * mc3d.BH.N;
+
+  total_memory_usage += sizeof(double) * mc3d.r.N;
+
+  total_memory_usage += sizeof(int) * mc3d.LightSources.N;
+  total_memory_usage += sizeof(int) * mc3d.LightSourcesMother.N;
+  total_memory_usage += sizeof(double) * mc3d.LightSourcesCDF.N;
+
+  total_memory_usage += sizeof(char) * mc3d.BCLightDirectionType.N;
+  total_memory_usage += sizeof(double) * mc3d.BCLNormal.N;
+  total_memory_usage += sizeof(double) * mc3d.BCn.N;
+  total_memory_usage += sizeof(char) * mc3d.BCType.N;
+
+  total_memory_usage += sizeof(double) * mc3d.mua.N;
+  total_memory_usage += sizeof(double) * mc3d.mus.N;
+  total_memory_usage += sizeof(double) * mc3d.g.N;
+  total_memory_usage += sizeof(double) * mc3d.n.N;
+  total_memory_usage += sizeof(double) * mc3d.k.N;
+  total_memory_usage += sizeof(double) * mc3d.g2.N;
+
+  total_memory_usage += sizeof(double) * mc3d.ER.N;
+  total_memory_usage += sizeof(double) * mc3d.EI.N;
+
+  total_memory_usage += sizeof(double) * mc3d.EBR.N;
+  total_memory_usage += sizeof(double) * mc3d.EBI.N;
+
+  return total_memory_usage;
+}
 
 }
