@@ -5,34 +5,34 @@
 
 namespace ValoMC {
 
-  __global__ init_state (MC3DCUDA mc3d) {
-    const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
-    const unsigned total_size_x = gridDim.x*blockDim.x;
-    if (idx > mc3d.states_size) {
-      return;
-    }
-
-    for (unsigned istate=idx; istate<mc3d.states_size; istate+=total_size_x) {
-      curand_init(mc3d.seed, 0, idx, mc3d.states[istate]);
-    }
+__global__ init_state (MC3DCUDA mc3d) {
+  const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
+  const unsigned total_size_x = gridDim.x*blockDim.x;
+  if (idx > mc3d.states_size) {
+    return;
   }
 
-
-  __global__ monte_carlo (MC3DCUDA mc3d) {
-    const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
-    const unsigned total_size_x = gridDim.x*blockDim.x;
-    const unsigned increment_size = total_size_x > mc3d.states_size ? mc3d.states_size: total_size_x;
-
-    if (idx > increment_size) {
-      return;
-    }
-    curandState_t local_state = mc3d.states[idx];
-    Photon* photon;
-    for (unsigned iphoton=idx; iphoton<mc3d.nphotons; iphotons+=increment_size) {
-      mc3d.create_photon(photon, local_state);
-      mc3d.propagate_photon(photon, local_state);
-    }
+  for (unsigned istate=idx; istate<mc3d.states_size; istate+=total_size_x) {
+    curand_init(mc3d.seed, 0, idx, mc3d.states[istate]);
   }
+}
+
+
+__global__ monte_carlo (MC3DCUDA mc3d) {
+  const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
+  const unsigned total_size_x = gridDim.x*blockDim.x;
+  const unsigned increment_size = total_size_x > mc3d.states_size ? mc3d.states_size: total_size_x;
+
+  if (idx > increment_size) {
+    return;
+  }
+  curandState_t local_state = mc3d.states[idx];
+  Photon* photon;
+  for (unsigned iphoton=idx; iphoton<mc3d.nphotons; iphotons+=increment_size) {
+    mc3d.create_photon(photon, local_state);
+    mc3d.propagate_photon(photon, local_state);
+  }
+}
 
 
   // GPUArray<int_fast64_t> H = *topology;

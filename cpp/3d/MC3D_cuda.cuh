@@ -137,6 +137,10 @@ private:
    */
   unsigned long get_total_memory_usage ();
 };
+
+__global__ init_state (MC3DCUDA mc3d);
+__global__ monte_carlo (MC3DCUDA mc3d);
+
 }
 
 
