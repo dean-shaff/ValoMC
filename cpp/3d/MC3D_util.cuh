@@ -107,14 +107,13 @@ namespace util {
     if (! check_device_ptr(dst)) {
       throw std::runtime_error("dst Array must be allocated on device");
     }
-    if (check_device_ptr(src)) {
-      throw std::runtime_error("src Array must be allocated on host");
-    }
+    // if (check_device_ptr(src)) {
+    //   throw std::runtime_error("src Array must be allocated on host");
+    // }
 
     // copy properties of src to dst
     gpuErrchk(
       cudaMemcpy(dst, src, sizeof(Array<T>), cudaMemcpyHostToDevice));
-
     // now copy memory from src to dst
     T* ptr;
     gpuErrchk(
@@ -123,8 +122,8 @@ namespace util {
       cudaMemcpy(ptr, src->data, sizeof(T)*(src->N), cudaMemcpyHostToDevice));
     gpuErrchk(
       cudaMemcpy(&(dst->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
-    gpuErrchk(
-      cudaFree(ptr));
+    // gpuErrchk(
+    //   cudaFree(ptr));
   }
 
   /**
@@ -139,9 +138,9 @@ namespace util {
     if (!check_device_ptr(src)) {
       throw std::runtime_error("src Array must be allocated on device");
     }
-    if (check_device_ptr(dst)) {
-      throw std::runtime_error("dst Array must be allocated on host");
-    }
+    // if (check_device_ptr(dst)) {
+    //   throw std::runtime_error("dst Array must be allocated on host");
+    // }
 
     T* ptr;
     gpuErrchk(
@@ -150,8 +149,8 @@ namespace util {
       cudaMemcpy(&ptr, &(src->data), sizeof(T*), cudaMemcpyDeviceToHost));
     gpuErrchk(
       cudaMemcpy(dst->data, ptr, sizeof(T)*(dst->N), cudaMemcpyDeviceToHost));
-    gpuErrchk(
-      cudaFree(ptr));
+    // gpuErrchk(
+    //   cudaFree(ptr));
   }
 
 

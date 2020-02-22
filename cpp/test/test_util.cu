@@ -65,8 +65,8 @@ TEMPLATE_TEST_CASE(
   float, Array<float>
 )
 {
-  TestType* ptr;
-  CHECK(ValoMC::util::check_device_ptr(ptr) == false);
+  // TestType* ptr;
+  // CHECK(ValoMC::util::check_device_ptr(ptr) == false);
 
   TestType* ptr_d;
   gpuErrchk(cudaMalloc((void**)&ptr_d, sizeof(TestType)));
@@ -169,7 +169,7 @@ __global__ void fill_array (Array<T>* arr, T val) {
 
 TEMPLATE_TEST_CASE(
   "h2d works as expected",
-  "[util][unit][h2d][cuda]",
+  "[util][unit][cuda][h2d]",
   float, double
 )
 {
@@ -186,12 +186,10 @@ TEMPLATE_TEST_CASE(
 
   SECTION ("h2d works in isolation") {
     ValoMC::util::h2d(arr, &arr_h);
-    gpuErrchk(cudaDeviceSynchronize());
   }
 
   SECTION ("can pass Array pointer to CUDA kernel") {
     ValoMC::util::h2d(arr, &arr_h);
-    gpuErrchk(cudaDeviceSynchronize());
     int* result;
     int result_h = 0;
     gpuErrchk(cudaMalloc((void**)&result, sizeof(int)));
@@ -207,7 +205,7 @@ TEMPLATE_TEST_CASE(
 
 TEMPLATE_TEST_CASE(
   "d2h works as expected",
-  "[util][unit][d2h][cuda]",
+  "[util][unit][cuda][d2h]",
   float, double
 )
 {
@@ -216,7 +214,7 @@ TEMPLATE_TEST_CASE(
   arr_h.resize(10, 2);
 
   Array<TestType>* arr;
-  cudaMalloc((void**)&arr, sizeof(Array<TestType>));
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
   ValoMC::util::h2d(arr, &arr_h);
 
   fill_array<TestType><<<1, 1>>>(arr, val);
@@ -239,7 +237,7 @@ TEMPLATE_TEST_CASE(
 
 TEST_CASE (
   "Can call kernel on object containing pointers to Arrays",
-  "[util][ContainsArray][cuda]"
+  "[util][cuda][ContainsArray]"
 )
 {
   ContainsArray con;

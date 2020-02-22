@@ -7,7 +7,7 @@
 
 TEMPLATE_TEST_CASE (
   "ensure constructors and copy operators work",
-  "[Array][cuda][unit][copy][constructor]",
+  "[Array][unit][copy][constructor]",
   float, double, char
 )
 {
@@ -33,7 +33,7 @@ TEMPLATE_TEST_CASE (
 
 TEMPLATE_TEST_CASE (
   "Ensure resize works",
-  "[Array][cuda][unit][resize]",
+  "[Array][unit][resize]",
   float, double, char
 )
 {
