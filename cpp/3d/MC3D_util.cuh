@@ -3,6 +3,16 @@
 
 #include <limits>
 
+#include "Array.hpp"
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+   if (code != cudaSuccess) {
+    fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    if (abort) exit(code);
+   }
+}
+
 namespace ValoMC {
 namespace util {
 
@@ -62,6 +72,86 @@ namespace util {
   template<typename T, typename State>
   __device__ T rand_open_down (State* state) {
     return (T)(((double) curand(state) + 1.0) * limit_map::u32_max_p1_inv);
+  }
+
+  /**
+   * Check if ptr has been allocated on device
+   * @param  ptr test pointer
+   * @return     true if allocated on device, false otherwise
+   */
+  template<typename T>
+  __host__ bool check_device_ptr (T* ptr) {
+    cudaPointerAttributes attr;
+    cudaError_t err = cudaPointerGetAttributes(&attr, ptr);
+    // std::cerr << "Error code: " <<  cudaGetErrorString(err) << std::endl;
+    // std::cerr << "attr.type: " << attr.type << std::endl;
+    if (err != cudaSuccess) {
+      return false;
+    } else {
+      if (attr.type == 2) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Copy contents of src to dst that has been allocated on device.
+   * @param dst Array that has been allocated on device
+   * @param src Array that has been allocated on host
+   */
+  template<typename T>
+  __host__ void h2d (Array<T>* dst, Array<T>* src)
+  {
+    if (! check_device_ptr(dst)) {
+      throw std::runtime_error("dst Array must be allocated on device");
+    }
+    if (check_device_ptr(src)) {
+      throw std::runtime_error("src Array must be allocated on host");
+    }
+
+    // copy properties of src to dst
+    gpuErrchk(
+      cudaMemcpy(dst, src, sizeof(Array<T>), cudaMemcpyHostToDevice));
+
+    // now copy memory from src to dst
+    T* ptr;
+    gpuErrchk(
+      cudaMalloc((void**) &ptr, sizeof(T)*(src->N)));
+    gpuErrchk(
+      cudaMemcpy(ptr, src->data, sizeof(T)*(src->N), cudaMemcpyHostToDevice));
+    gpuErrchk(
+      cudaMemcpy(&(dst->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
+    gpuErrchk(
+      cudaFree(ptr));
+  }
+
+  /**
+   * copy contents of src to dst. Does no error checking to ensure that
+   * the sizes are compatible.
+   * @param dst Array that has been allocated on host
+   * @param src Array that has been allocated on device (by cudaMalloc)
+   */
+  template<typename T>
+  __host__ void d2h (Array<T>* dst, Array<T>* src)
+  {
+    if (!check_device_ptr(src)) {
+      throw std::runtime_error("src Array must be allocated on device");
+    }
+    if (check_device_ptr(dst)) {
+      throw std::runtime_error("dst Array must be allocated on host");
+    }
+
+    T* ptr;
+    gpuErrchk(
+      cudaMalloc((void**) &ptr, sizeof(T)*(dst->N)));
+    gpuErrchk(
+      cudaMemcpy(&ptr, &(src->data), sizeof(T*), cudaMemcpyDeviceToHost));
+    gpuErrchk(
+      cudaMemcpy(dst->data, ptr, sizeof(T)*(dst->N), cudaMemcpyDeviceToHost));
+    gpuErrchk(
+      cudaFree(ptr));
   }
 
 
