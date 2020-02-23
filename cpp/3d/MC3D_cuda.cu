@@ -5,62 +5,65 @@
 
 namespace ValoMC {
 
-__global__ init_state (MC3DCUDA mc3d) {
+__global__ void init_state (MC3DCUDA mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
-  if (idx > mc3d.states_size) {
+  const unsigned states_size = mc3d.get_states_size();
+  if (idx > states_size) {
     return;
   }
+  const unsigned seed = mc3d.get_seed();
 
-  for (unsigned istate=idx; istate<mc3d.states_size; istate+=total_size_x) {
-    curand_init(mc3d.seed, 0, idx, mc3d.states[istate]);
+  for (unsigned istate=idx; istate<states_size; istate+=total_size_x) {
+    curand_init(seed, idx, 0, &mc3d.get_states()[istate]);
   }
 }
 
 
-__global__ monte_carlo (MC3DCUDA mc3d) {
+__global__ void monte_carlo (MC3DCUDA mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
-  const unsigned increment_size = total_size_x > mc3d.states_size ? mc3d.states_size: total_size_x;
+  const unsigned states_size = mc3d.get_states_size();
+  const unsigned increment_size = total_size_x > states_size ? states_size: total_size_x;
 
   if (idx > increment_size) {
     return;
   }
-  curandState_t local_state = mc3d.states[idx];
+  curandState_t local_state = mc3d.get_states()[idx];
   Photon* photon;
-  for (unsigned iphoton=idx; iphoton<mc3d.nphotons; iphotons+=increment_size) {
-    mc3d.create_photon(photon, local_state);
-    mc3d.propagate_photon(photon, local_state);
+  for (unsigned iphoton=idx; iphoton<mc3d.get_nphotons(); iphoton+=increment_size) {
+    mc3d.create_photon(photon, &local_state);
+    mc3d.propagate_photon(photon, &local_state);
   }
 }
 
 
-  // GPUArray<int_fast64_t> H = *topology;
-  // GPUArray<int_fast64_t> HN = *neighborhood;
-  // GPUArray<int_fast64_t> BH = *boundary;
+  // Array<int_fast64_t> H = *topology;
+  // Array<int_fast64_t> HN = *neighborhood;
+  // Array<int_fast64_t> BH = *boundary;
   //
-  // GPUArray<double> r = *grid_nodes;
-  // GPUArray<int> LightSources = *light_source;
-  // GPUArray<int> LightSourcesMother = *light_sources_mother;
-  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  // Array<double> r = *grid_nodes;
+  // Array<int> LightSources = *light_source;
+  // Array<int> LightSourcesMother = *light_sources_mother;
+  // Array<double> LightSourcesCDF = *light_sources_cdf;
   //
-  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
-  // GPUArray<char> BCType = *BC_type;
-  // GPUArray<double> BCLNormal = *BCL_normal;
-  // GPUArray<double> BCn = *BCn;
+  // Array<char> BCLightDirectionType = *BC_light_direction_type;
+  // Array<char> BCType = *BC_type;
+  // Array<double> BCLNormal = *BCL_normal;
+  // Array<double> BCn = *BCn;
 
-  // GPUArray<double> mua = *absorption;
-  // GPUArray<double> mus = *scattering;
-  // GPUArray<double> g = *scattering_inhom;
-  // GPUArray<double> n = *idx_refrc;
-  // GPUArray<double> k = *wave_number;
-  // GPUArray<double> g2 = *scattering_inhom_2;
+  // Array<double> mua = *absorption;
+  // Array<double> mus = *scattering;
+  // Array<double> g = *scattering_inhom;
+  // Array<double> n = *idx_refrc;
+  // Array<double> k = *wave_number;
+  // Array<double> g2 = *scattering_inhom_2;
   //
-  // GPUArray<double> ER = *pow_den_vol_real;
-  // GPUArray<double> EI = *pow_den_vol_imag;
+  // Array<double> ER = *pow_den_vol_real;
+  // Array<double> EI = *pow_den_vol_imag;
   //
-  // GPUArray<double> EBR = *pow_den_boun_real;
-  // GPUArray<double> EBI = *pow_den_boun_imag;
+  // Array<double> EBR = *pow_den_boun_real;
+  // Array<double> EBI = *pow_den_boun_imag;
 
 
 __host__ __device__ void MC3DCUDA::normal (
@@ -208,24 +211,24 @@ __host__ __device__ int MC3DCUDA::which_face (
 }
 
 
-__device__ void MC3DCUDA::create_photon (curandState_t* state)
+__device__ void MC3DCUDA::create_photon (Photon* phot, curandState_t* state)
 {
-  double xi = rand_closed(state);
+  double xi = ValoMC::util::rand_closed(state);
 
   double n[3], t[3], norm;
 
-  GPUArray<int_fast64_t> H = *topology;
-  GPUArray<int_fast64_t> HN = *neighborhood;
-  GPUArray<int_fast64_t> BH = *boundary;
+  Array<int_fast64_t> H = *topology;
+  Array<int_fast64_t> HN = *neighborhood;
+  Array<int_fast64_t> BH = *boundary;
 
-  GPUArray<double> r = *grid_nodes;
-  GPUArray<int> LightSources = *light_source;
-  GPUArray<int> LightSourcesMother = *light_sources_mother;
-  GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  Array<double> r = *grid_nodes;
+  Array<int> LightSources = *light_source;
+  Array<int> LightSourcesMother = *light_sources_mother;
+  Array<double> LightSourcesCDF = *light_sources_cdf;
 
-  GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
-  GPUArray<char> BCType = *BC_type;
-  GPUArray<double> BCLNormal = *BCL_normal;
+  Array<char> BCLightDirectionType = *BC_light_direction_type;
+  Array<char> BCType = *BC_type;
+  Array<double> BCLNormal = *BCL_normal;
 
   // Find boundary element index that will create this photon
   int ib;
@@ -250,7 +253,7 @@ __device__ void MC3DCUDA::create_photon (curandState_t* state)
     phot->curface = -1;
 
   // Initial photon position uniformly distributed on the boundary element
-  double w0 = rand_open(state), w1 = rand_open(state), w2 = rand_open(state);
+  double w0 = ValoMC::util::rand_open(state), w1 = ValoMC::util::rand_open(state), w2 = ValoMC::util::rand_open(state);
   phot->pos[0] = (w0 * r(BH(ib, 0), 0) + w1 * r(BH(ib, 1), 0) + w2 * r(BH(ib, 2), 0)) / (w0 + w1 + w2);
   phot->pos[1] = (w0 * r(BH(ib, 0), 1) + w1 * r(BH(ib, 1), 1) + w2 * r(BH(ib, 2), 1)) / (w0 + w1 + w2);
   phot->pos[2] = (w0 * r(BH(ib, 0), 2) + w1 * r(BH(ib, 1), 2) + w2 * r(BH(ib, 2), 2)) / (w0 + w1 + w2);
@@ -295,8 +298,8 @@ __device__ void MC3DCUDA::create_photon (curandState_t* state)
       double dot, r[3], theta, u;
       do
       {
-        theta = 2.0 * M_PI * rand_open_up(state);
-        u = 2.0 * rand_closed(state) - 1.0;
+        theta = 2.0 * M_PI * ValoMC::util::rand_open_up(state);
+        u = 2.0 * ValoMC::util::rand_closed(state) - 1.0;
         r[0] = sqrt(1.0 - pow(u, 2)) * cos(theta);
         r[1] = sqrt(1.0 - pow(u, 2)) * sin(theta);
         r[2] = u;
@@ -319,8 +322,8 @@ __device__ void MC3DCUDA::create_photon (curandState_t* state)
       e2[1] = r(BH(ib, 2), 1) - r(BH(ib, 0), 1);
       e2[2] = r(BH(ib, 2), 2) - r(BH(ib, 0), 2);
       // Cosinically distributed spherical coordinates
-      phi = asin(2.0 * rand_open(state) - 1.0);
-      theta = 2.0 * M_PI * rand_closed(state);
+      phi = asin(2.0 * ValoMC::util::rand_open(state) - 1.0);
+      theta = 2.0 * M_PI * ValoMC::util::rand_closed(state);
       // Propagation direction of generated photon (random draw around x = 1, y = z = 0 direction with cosinic direction distribution)
       f[0] = cos(phi);
       f[1] = cos(theta) * sin(phi);
@@ -390,8 +393,8 @@ __device__ void MC3DCUDA::create_photon (curandState_t* state)
       double dot, r[3], theta, u;
       do
       {
-        theta = 2.0 * M_PI * rand_open_up(state);
-        u = 2.0 * rand_closed(state) - 1.0;
+        theta = 2.0 * M_PI * ValoMC::util::rand_open_up(state);
+        u = 2.0 * ValoMC::util::rand_closed(state) - 1.0;
         r[0] = sqrt(1.0 - pow(u, 2)) * cos(theta);
         r[1] = sqrt(1.0 - pow(u, 2)) * sin(theta);
         r[2] = u;
@@ -414,8 +417,8 @@ __device__ void MC3DCUDA::create_photon (curandState_t* state)
       e2[1] = r(BH(ib, 2), 1) - r(BH(ib, 0), 1);
       e2[2] = r(BH(ib, 2), 2) - r(BH(ib, 0), 2);
       // Cosinically distributed spherical coordinates
-      phi = asin(2.0 * rand_open(state) - 1.0);
-      theta = 2.0 * M_PI * rand_closed(state);
+      phi = asin(2.0 * ValoMC::util::rand_open(state) - 1.0);
+      theta = 2.0 * M_PI * ValoMC::util::rand_closed(state);
       // Propagation direction of generated photon (random draw around x = 1, y = z = 0 direction with cosinic direction distribution)
       f[0] = cos(phi);
       f[1] = cos(theta) * sin(phi);
@@ -465,22 +468,22 @@ __device__ void MC3DCUDA::scatter_photon (Photon *phot, curandState_t* state)
   double xi, theta, phi;
   double dxn, dyn, dzn;
 
-  GPUArray<double> g = *scattering_inhom;
-  GPUArray<double> g2 = *scattering_inhom_2;
+  Array<double> g = *scattering_inhom;
+  Array<double> g2 = *scattering_inhom_2;
 
   // Henye-Greenstein scattering
   if (g[phot->curel] != 0.0)
   {
-    xi = rand_closed(state);
+    xi = ValoMC::util::rand_closed(state);
     if ((0.0 < xi) && (xi < 1.0))
       theta = acos((1.0 + g2[phot->curel] - pow((1.0 - g2[phot->curel]) / (1.0 - g[phot->curel] * (1.0 - 2.0 * xi)), 2)) / (2.0 * g[phot->curel]));
     else
       theta = (1.0 - xi) * M_PI;
   }
   else
-    theta = acos(2.0 * rand_closed(state) - 1.0);
+    theta = acos(2.0 * ValoMC::util::rand_closed(state) - 1.0);
 
-  phi = 2.0 * M_PI * rand_closed(state);
+  phi = 2.0 * M_PI * ValoMC::util::rand_closed(state);
 
   if (fabs(phot->dir[2]) > 0.999)
   {
@@ -531,8 +534,8 @@ __host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el,
 __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
 {
 
-  GPUArray<double> BCn = *BCn;
-  GPUArray<double> n = *idx_refrc;
+  Array<double> BCn = *BCn;
+  Array<double> n = *idx_refrc;
 
   // Likelyhood of reflection:
   //   R = 0.5 ( sin^2(theta_i - theta_t) / sin^2(theta_i + theta_t) + tan^2(theta_i - theta_t) / tan^2(theta_i + theta_t))
@@ -587,7 +590,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
-  double xi = rand_closed(state);
+  double xi = ValoMC::util::rand_closed(state);
 
   if (xi <= R)
   {
@@ -622,47 +625,48 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
   int_fast64_t ib;
   // Propagate until the photon dies
 
-  // GPUArray<int_fast64_t> H = *topology;
-  GPUArray<int_fast64_t> HN = *neighborhood;
-  // GPUArray<int_fast64_t> BH = *boundary;
+  // Array<int_fast64_t> H = *topology;
+  Array<int_fast64_t> HN = *neighborhood;
+  // Array<int_fast64_t> BH = *boundary;
   //
-  // GPUArray<double> r = *grid_nodes;
-  // GPUArray<int> LightSources = *light_source;
-  // GPUArray<int> LightSourcesMother = *light_sources_mother;
-  // GPUArray<double> LightSourcesCDF = *light_sources_cdf;
+  // Array<double> r = *grid_nodes;
+  // Array<int> LightSources = *light_source;
+  // Array<int> LightSourcesMother = *light_sources_mother;
+  // Array<double> LightSourcesCDF = *light_sources_cdf;
   //
-  // GPUArray<char> BCLightDirectionType = *BC_light_direction_type;
-  GPUArray<char> BCType = *BC_type;
-  // GPUArray<double> BCLNormal = *BCL_normal;
-  // GPUArray<double> BCn = *BCn;
+  // Array<char> BCLightDirectionType = *BC_light_direction_type;
+  Array<char> BCType = *BC_type;
+  // Array<double> BCLNormal = *BCL_normal;
+  // Array<double> BCn = *BCn;
 
-  GPUArray<double> mua = *absorption;
-  GPUArray<double> mus = *scattering;
-  // GPUArray<double> g = *scattering_inhom;
-  GPUArray<double> n = *idx_refrc;
-  GPUArray<double> k = *wave_number;
-  // GPUArray<double> g2 = *scattering_inhom_2;
+  Array<double> mua = *absorption;
+  Array<double> mus = *scattering;
+  // Array<double> g = *scattering_inhom;
+  Array<double> n = *idx_refrc;
+  Array<double> k = *wave_number;
+  // Array<double> g2 = *scattering_inhom_2;
   //
-  GPUArray<double> ER = *pow_den_vol_real;
-  GPUArray<double> EI = *pow_den_vol_imag;
+  Array<double> ER = *pow_den_vol_real;
+  Array<double> EI = *pow_den_vol_imag;
 
-  GPUArray<double> EBR = *pow_den_boun_real;
-  GPUArray<double> EBI = *pow_den_boun_imag;
+  Array<double> EBR = *pow_den_boun_real;
+  Array<double> EBI = *pow_den_boun_imag;
 
   while (1)
   {
     // Draw the propagation distance
-    prop = -log(rand_open(state)) / mus[phot->curel];
+    prop = -log(ValoMC::util::rand_open(state)) / mus[phot->curel];
 
     // Propagate until the current propagation distance runs out (and a scattering will occur)
     while (1)
     {
       // Check through which face the photon will exit the current element
-      if (which_face(phot, &dist) == -1)
-      {
-        loss++;
-        return;
-      }
+      // [DS]
+      // if (which_face(phot, &dist) == -1)
+      // {
+      //   loss++;
+      //   return;
+      // }
 
       // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
       ds = fmin(prop, dist);
@@ -679,12 +683,12 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
         if (mua[phot->curel] > 0.0)
         {
           // ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
-          atomicAdd(ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
+          atomicAdd(&ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
         }
         else
         {
           // ER[phot->curel] += phot->weight * ds;
-          atomicAdd(ER[phot->curel], phot->weight * ds);
+          atomicAdd(&ER[phot->curel], phot->weight * ds);
         }
       }
       else
@@ -717,8 +721,8 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 
         // ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
         // EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-        atomicAdd(ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
-        atomicAdd(EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        atomicAdd(&ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        atomicAdd(&EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
 
         phot->phase += k[phot->curel] * ds;
       }
@@ -757,14 +761,14 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
           if (omega <= 0.0)
           {
             // EBR[ib] += phot->weight;
-            atomicAdd(EBR[ib], phot->weight);
+            atomicAdd(&EBR[ib], phot->weight);
           }
           else
           {
             // EBR[ib] += phot->weight * cos(phot->phase);
             // EBI[ib] -= phot->weight * sin(phot->phase);
-            atomicAdd(EBR[ib], phot->weight * cos(phot->phase));
-            atomicAdd(EBI[ib], -phot->weight * sin(phot->phase));
+            atomicAdd(&EBR[ib], phot->weight * cos(phot->phase));
+            atomicAdd(&EBI[ib], -phot->weight * sin(phot->phase));
 
           }
           // Photon propagation will terminate
@@ -776,13 +780,13 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
       if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
       {
         // Draw new propagation distance -- otherwise photon might travel without scattering
-        prop = -log(rand_open(state)) / mus[phot->nextel];
+        prop = -log(ValoMC::util::rand_open(state)) / mus[phot->nextel];
       }
 
       // Test for surival of the photon via roulette
       if (phot->weight < weight0)
       {
-        if (rand_closed(state) > chance)
+        if (ValoMC::util::rand_closed(state) > chance)
           return;
         phot->weight /= chance;
       }
@@ -842,7 +846,8 @@ void MC3D::allocate_attributes () {
   ValoMC::util::h2d(BC_type, mc3d.BCType);
 
   ValoMC::util::h2d(absorption, mc3d.mua);
-  ValoMC::util::h2d(scattering, mc3d.mus);
+  ValoMC::util::h2d(scattering, mc3d.mus);  double omega;
+
   ValoMC::util::h2d(scattering_inhom, mc3d.g);
   ValoMC::util::h2d(idx_refrc, mc3d.n);
   ValoMC::util::h2d(wave_number, mc3d.k);
@@ -856,6 +861,7 @@ void MC3D::allocate_attributes () {
 
   omega = mc3d.omega;
   seed = mc3d.seed;
+  nphotons = static_cast<unsigned long>(mc3d.Nphoton);
 }
 
 unsigned long MC3D::get_total_memory_usage () {

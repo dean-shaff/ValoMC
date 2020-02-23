@@ -47,7 +47,7 @@ public:
     double* dist
   );
 
-  __device__ void create_photon (curandState_t* state);
+  __device__ void create_photon (Photon* phot, curandState_t* state);
 
   __device__ void scatter_photon (Photon *phot, curandState_t* state);
 
@@ -73,16 +73,22 @@ public:
 
   const MC3D& get_mc3d () const { return mc3d; }
   MC3D& get_mc3d () { return mc3d; }
-
   void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
 
-  void set_seed (unsigned long _seed) { seed = _seed; mc3d.seed = _seed; };
+  __host__ __device__ unsigned long get_seed () const { return seed; }
+  __host__ __device__ void set_seed (unsigned long _seed) { seed = _seed; mc3d.seed = _seed; };
 
-  unsigned long get_seed () const { return seed; }
+  __host__ __device__ unsigned get_states_size () const { return states_size; }
+  __host__ __device__ void set_states_size (unsigned _states_size) { states_size = _states_size; }
 
-  void set_states_size (unsigned _states_size) { states_size = _states_size; }
+  __host__ __device__ curandState_t* get_states () { return states; }
+  __host__ __device__ void set_states (curandState_t* _states) { states = _states; }
 
-  unsigned get_states_size () const { return states_size; }
+  __host__ __device__ unsigned long get_nphotons () { return nphotons; }
+  __host__ __device__ void set_nphotons (unsigned long _nphotons) { nphotons = _nphotons; }
+
+  __host__ __device__ double get_omega () { return omega; }
+  __host__ __device__ void set_omega (double _omega) { omega = _omega; }
 
   /**
    * Helper function to allocate Array objects in device memory.
@@ -126,7 +132,6 @@ private:
   Array<double>* pow_den_boun_real; // EBR
   Array<double>* pow_den_boun_imag; // EBI
 
-  double omega;
 
   MC3D mc3d;
 
@@ -135,8 +140,13 @@ private:
   // number of states
   unsigned states_size;
 
+  double omega;
+
   // random number seed
   unsigned long seed;
+
+  // number of photons
+  unsigned long nphotons;
 
 };
 
