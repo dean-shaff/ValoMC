@@ -6,18 +6,13 @@
 
 #include "util.hpp"
 
-const std::string json_file_path = ValoMC::test::util::get_env_var(
-  "MC3D_TEST_DATA_PATH", "./../cpp/test/MC3Dmex.input.json");
+static ValoMC::test::util::TestConfig config;
 
 TEST_CASE ("MC3D", "[unit][MC3D]")
 {
-  MC3D mc3d;
+  config.init_MC3D_from_json();
 
-  ValoMC::test::util::init_MC3D_from_json(
-    json_file_path,
-    mc3d
-  );
-
+  MC3D mc3d = config.get_mc3d();
   mc3d.Nphoton = 100;
   mc3d.ErrorChecks();
   mc3d.Init();

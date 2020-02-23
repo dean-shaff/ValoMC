@@ -56,9 +56,6 @@ void flatten_transpose(const vec2d<T>& in, std::vector<T>& out) {
   }
 }
 
-
-
-
 template<typename T>
 void load_array_from_vector (
   const vec2d<T>& vec, Array<T>& arr
@@ -86,7 +83,34 @@ void load_array_from_json(
 }
 
 
-void init_MC3D_from_json(const std::string& file_path, MC3D& mc_obj);
+class TestConfig {
+public:
+
+  TestConfig () {
+    test_data_file_path = ValoMC::test::util::get_env_var(
+      "MC3D_TEST_DATA_PATH", "./../cpp/test/MC3Dmex.input.json");
+    loaded = false;
+  }
+
+  void init_MC3D_from_json();
+
+  void set_test_data_file_path (const std::string& _test_data_file_path) { test_data_file_path = _test_data_file_path; }
+  const std::string& get_test_data_file_path() const { return test_data_file_path; }
+
+  void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
+  const MC3D& get_mc3d () const { return mc3d; }
+  MC3D& get_mc3d () { return mc3d; }
+
+private:
+
+  bool loaded;
+
+  std::string test_data_file_path;
+
+  MC3D mc3d;
+
+};
+
 
 
 }

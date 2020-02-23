@@ -46,7 +46,7 @@ T min (T a, T b) {
 }
 
 
-double eps = std::numeric_limits<double>::epsilon();
+const double eps = std::numeric_limits<double>::epsilon();
 
 // Check if ray and triangle intersect
 int RayTriangleIntersects(double O[3], double D[3], double V0[3], double V1[3], double V2[3], double *t);

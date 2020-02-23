@@ -2,3 +2,4 @@ build/
 *.mat
 *.mexa64
 *~
+cpp/test/MC3Dmex.input.json

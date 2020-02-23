@@ -5,7 +5,7 @@
 
 /*
    A class to contain Mersenne-Twister random number generator.
-   
+
    Code based on work by Matkoto Matsumoto and Takuji Nishimura and
    specially the file 'mt19937ar.c'
 
@@ -17,15 +17,15 @@
 
 
 
-/* 
+/*
    A C-program for MT19937, with initialization improved 2002/1/26.
    Coded by Takuji Nishimura and Makoto Matsumoto.
 
-   Before using, initialize the state by using init_genrand(seed)  
+   Before using, initialize the state by using init_genrand(seed)
    or init_by_array(init_key, key_length).
 
    Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
-   All rights reserved.                          
+   All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -38,8 +38,8 @@
         notice, this list of conditions and the following disclaimer in the
         documentation and/or other materials provided with the distribution.
 
-     3. The names of its contributors may not be used to endorse or promote 
-        products derived from this software without specific prior written 
+     3. The names of its contributors may not be used to endorse or promote
+        products derived from this software without specific prior written
         permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -101,7 +101,7 @@ public:
 
   // Create a random number on ]0,1]-real-interval
   double drand_open_down();
-  
+
   // Destructor
   ~mt_rng();
 
@@ -110,13 +110,13 @@ private:
 };
 
 
-mt_rng::mt_rng(unsigned long s){
+inline mt_rng::mt_rng(unsigned long s){
   mti = N + 1;
   Seed(s);
 }
 
 // Initialize RNG with a seed
-void mt_rng::Seed(unsigned long s){
+inline void mt_rng::Seed(unsigned long s){
   mt[0] = s & 0xffffffffUL;
   for(mti = 1; mti < N; mti++){
     mt[mti] = 1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti;
@@ -125,7 +125,7 @@ void mt_rng::Seed(unsigned long s){
 }
 
 // Initialize RNG with an array
-void mt_rng::init_by_array(unsigned long *init_key, int key_length){
+inline void mt_rng::init_by_array(unsigned long *init_key, int key_length){
   int i = 1, j = 0, k;
   Seed(19650218UL);
   k = N > key_length ? N : key_length;
@@ -133,7 +133,7 @@ void mt_rng::init_by_array(unsigned long *init_key, int key_length){
     mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1664525UL)) + init_key[j] + j;
     mt[i] &= 0xffffffffUL;
     i++; j++;
-    if(i >= N){ 
+    if(i >= N){
       mt[0] = mt[N-1];
       i = 1;
     }
@@ -152,7 +152,7 @@ void mt_rng::init_by_array(unsigned long *init_key, int key_length){
 }
 
 // Create random number on [0,0xffffffff]-interval
-unsigned long mt_rng::ulrand(){
+inline unsigned long mt_rng::ulrand(){
   unsigned long y;
   static unsigned long mag01[2]={ 0x0UL, MATRIX_A };
   if(mti >= N){
@@ -167,7 +167,7 @@ unsigned long mt_rng::ulrand(){
     }
     y = (mt[N - 1] & UPPER_MASK) | (mt[0] & LOWER_MASK);
     mt[N - 1] = mt[M - 1] ^ (y >> 1) ^ mag01[y & 0x1UL];
-    
+
     mti = 0;
   }
   y = mt[mti++];
@@ -179,31 +179,31 @@ unsigned long mt_rng::ulrand(){
 }
 
 // Create a random number on [0,0x7fffffff]-interval
-long mt_rng::lrand(){
+inline long mt_rng::lrand(){
   return( (long) (ulrand() >> 1) );
 }
 
 // Create a random number on [0,1]-real-interval
-double mt_rng::drand_closed(){
+inline double mt_rng::drand_closed(){
   return( (double) ulrand() * (1.0/4294967295.0) );
 }
 
 // Create a random number on ]0,1[-real-interval
-double mt_rng::drand_open(){
+inline double mt_rng::drand_open(){
   return( ( (double) ulrand() + 0.5 ) * (1.0 / 4294967296.0) );
 }
 
 // Create a random number on [0,1[-real-interval
-double mt_rng::drand_open_up(){
+inline double mt_rng::drand_open_up(){
   return( (double) ulrand() * (1.0 / 4294967296.0) );
 }
 
 // Create a random number on ]0,1]-real-interval
-double mt_rng::drand_open_down(){
+inline double mt_rng::drand_open_down(){
   return( ((double) ulrand() + 1.0) * (1.0/4294967296.0) );
 }
 
-mt_rng::~mt_rng(){
+inline mt_rng::~mt_rng(){
 }
 
 
