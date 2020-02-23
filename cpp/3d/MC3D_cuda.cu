@@ -855,6 +855,7 @@ void MC3D::allocate_attributes () {
   ValoMC::util::h2d(pow_den_boun_imag, mc3d.EBI);
 
   omega = mc3d.omega;
+  seed = mc3d.seed;
 }
 
 unsigned long MC3D::get_total_memory_usage () {

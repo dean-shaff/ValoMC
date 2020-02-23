@@ -30,8 +30,21 @@
 #define INT_FAST64_MAX __INT_FAST64_MAX__
 #endif
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
+// [DS] defining min and max as macros makes it hard to #include this file
+// down the line
+// #define min(a, b) ((a) < (b) ? (a) : (b))
+// #define max(a, b) ((a) > (b) ? (a) : (b))
+
+template<typename T>
+T max (T a, T b) {
+  return a > b ? a : b;
+}
+
+template<typename T>
+T min (T a, T b) {
+  return a < b ? a : b;
+}
+
 
 double eps = std::numeric_limits<double>::epsilon();
 

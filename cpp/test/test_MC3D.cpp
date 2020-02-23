@@ -4,25 +4,20 @@
 
 #include "catch.hpp"
 
-#include "util.hpp" // have to do this include before MC3D due to max macro definition in MC3D.hpp
+#include "util.hpp"
 
-#include "MC3D.hpp"
+const std::string json_file_path = ValoMC::test::util::get_env_var(
+  "MC3D_TEST_DATA_PATH", "./../cpp/test/MC3Dmex.input.json");
 
-CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
-  return std::string(errorstring(ex));
-}
-
-
-TEST_CASE ("MC3D", "[unit]")
+TEST_CASE ("MC3D", "[unit][MC3D]")
 {
-  const std::string json_file_path = "/home/dean/work/freelance/Yoav-Mor_28-01-2020_CUDA-Matlab-ValoMC/ValoMC/cpp/test/MC3Dmex.input.json";
-
   MC3D mc3d;
 
-  ValoMC::test::util::init_MC3D_from_json<MC3D>(
+  ValoMC::test::util::init_MC3D_from_json(
     json_file_path,
     mc3d
   );
+
   mc3d.Nphoton = 100;
   mc3d.ErrorChecks();
   mc3d.Init();

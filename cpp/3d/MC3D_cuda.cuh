@@ -3,9 +3,10 @@
 
 #include <inttypes.h> // for int_fast64_t without std:: prefix
 
+#include <curand_kernel.h>
+
 #include "MC3D.hpp"
 #include "MC3D_util.cuh"
-#include "GPUArray.cuh"
 
 namespace ValoMC {
 
@@ -58,17 +59,17 @@ public:
 
   __device__ void propagate_photon (Photon *phot, curandState_t* state);
 
-  // GPUArray<int_fast64_t>* get_topology() { return topology; }
-  // void set_topology(GPUArray<int_fast64_t>* _topology) { topology = _topology; }
+  // Array<int_fast64_t>* get_topology() { return topology; }
+  // void set_topology(Array<int_fast64_t>* _topology) { topology = _topology; }
   //
-  // GPUArray<int_fast64_t>* get_neighborhood() { return neighborhood; }
-  // void set_neighborhood (GPUArray<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
+  // Array<int_fast64_t>* get_neighborhood() { return neighborhood; }
+  // void set_neighborhood (Array<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
   //
-  // GPUArray<int_fast64_t>* get_boundary() { return boundary; }
-  // void set_boundary (GPUArray<int_fast64_t>* _boundary) { boundary = _boundary; }
+  // Array<int_fast64_t>* get_boundary() { return boundary; }
+  // void set_boundary (Array<int_fast64_t>* _boundary) { boundary = _boundary; }
   //
-  // GPUArray<double>* get_grid_nodes () { return grid_nodes; }
-  // void set_grid_nodes (GPUArray<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
+  // Array<double>* get_grid_nodes () { return grid_nodes; }
+  // void set_grid_nodes (Array<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
 
   const MC3D& get_mc3d () const { return mc3d; }
   MC3D& get_mc3d () { return mc3d; }
@@ -84,7 +85,7 @@ public:
   unsigned get_states_size () const { return states_size; }
 
   /**
-   * Helper function to allocate GPUArray objects in device memory.
+   * Helper function to allocate Array objects in device memory.
    */
   void allocate_attributes ();
 
@@ -97,33 +98,33 @@ public:
 
 private:
 
-  GPUArray<int_fast64_t>* topology; // H
-  GPUArray<int_fast64_t>* neighborhood; // HN
-  GPUArray<int_fast64_t>* boundary; // BH
+  Array<int_fast64_t>* topology; // H
+  Array<int_fast64_t>* neighborhood; // HN
+  Array<int_fast64_t>* boundary; // BH
 
-  GPUArray<double>* grid_nodes; // r
+  Array<double>* grid_nodes; // r
 
-  GPUArray<int>* light_sources; // LightSources
-  GPUArray<int>* light_sources_mother; // LightSourcesMother
-  GPUArray<double>* light_sources_cdf; // LightSourcesCDF
+  Array<int>* light_sources; // LightSources
+  Array<int>* light_sources_mother; // LightSourcesMother
+  Array<double>* light_sources_cdf; // LightSourcesCDF
 
-  GPUArray<char>* BC_light_direction_type; // BCLightDirectionType
-  GPUArray<double>* BCL_normal; // BCLNormal
-  GPUArray<double>* BCn; // BCn
-  GPUArray<char>* BC_type; // BCType
+  Array<char>* BC_light_direction_type; // BCLightDirectionType
+  Array<double>* BCL_normal; // BCLNormal
+  Array<double>* BCn; // BCn
+  Array<char>* BC_type; // BCType
 
-  GPUArray<double>* absorption; // mua
-  GPUArray<double>* scattering; // mus
-  GPUArray<double>* scattering_inhom; // g, scattering inhomogeneity
-  GPUArray<double>* idx_refrc; // n,  index of refraction
-  GPUArray<double>* wave_number; // k, wave number
-  GPUArray<double>* scattering_inhom_2; // g2, scattering inhomogeneity squared
+  Array<double>* absorption; // mua
+  Array<double>* scattering; // mus
+  Array<double>* scattering_inhom; // g, scattering inhomogeneity
+  Array<double>* idx_refrc; // n,  index of refraction
+  Array<double>* wave_number; // k, wave number
+  Array<double>* scattering_inhom_2; // g2, scattering inhomogeneity squared
 
-  GPUArray<double>* pow_den_vol_real; // ER
-  GPUArray<double>* pow_den_vol_imag; // EI
+  Array<double>* pow_den_vol_real; // ER
+  Array<double>* pow_den_vol_imag; // EI
 
-  GPUArray<double>* pow_den_boun_real; // EBR
-  GPUArray<double>* pow_den_boun_imag; // EBI
+  Array<double>* pow_den_boun_real; // EBR
+  Array<double>* pow_den_boun_imag; // EBI
 
   double omega;
 
@@ -139,8 +140,8 @@ private:
 
 };
 
-__global__ init_state (MC3DCUDA mc3d);
-__global__ monte_carlo (MC3DCUDA mc3d);
+__global__ void init_state (MC3DCUDA mc3d);
+__global__ void monte_carlo (MC3DCUDA mc3d);
 
 }
 

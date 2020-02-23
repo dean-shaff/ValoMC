@@ -1,14 +1,37 @@
 #ifndef __test_util_hpp
 #define __test_util_hpp
 
+#include <string>
+#include <vector>
 #include <ctime>
 #include <cmath>
 
+#include "catch.hpp"
+
+#include "MC3D.hpp"
 #include "Array.hpp"
+
+CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
+  return std::string(errorstring(ex));
+}
 
 namespace ValoMC {
 namespace test {
 namespace util {
+
+inline std::string get_env_var (
+  const std::string& name,
+  const std::string& default_val
+)
+{
+ const char* env_var = std::getenv(name.c_str());
+ if (env_var) {
+   return std::string(env_var);
+ } else {
+   return std::string(default_val);
+ }
+}
+
 
 template<typename T>
 using vec2d = std::vector<std::vector<T>>;
@@ -35,6 +58,7 @@ void flatten_transpose(const vec2d<T>& in, std::vector<T>& out) {
 
 
 
+
 template<typename T>
 void load_array_from_vector (
   const vec2d<T>& vec, Array<T>& arr
@@ -57,12 +81,11 @@ void load_array_from_json(
   Array<T>& arr
 )
 {
-  vec2d<T> vec = js_obj.get<vec2d<T>>();
+  vec2d<T> vec = js_obj.template get<vec2d<T>>();
   ValoMC::test::util::load_array_from_vector(vec, arr);
 }
 
 
-template<typename JsonType>
 void init_MC3D_from_json(const std::string& file_path, MC3D& mc_obj);
 
 
