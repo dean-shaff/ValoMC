@@ -83,6 +83,18 @@ public:
 
   unsigned get_states_size () const { return states_size; }
 
+  /**
+   * Helper function to allocate GPUArray objects in device memory.
+   */
+  void allocate_attributes ();
+
+  /**
+   * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
+   * @return unsigned int in bytes
+   */
+  unsigned long get_total_memory_usage ();
+
+
 private:
 
   GPUArray<int_fast64_t>* topology; // H
@@ -125,17 +137,6 @@ private:
   // random number seed
   unsigned long seed;
 
-
-  /**
-   * Helper function to allocate GPUArray objects in device memory.
-   */
-  void allocate_attributes ();
-
-  /**
-   * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
-   * @return unsigned int in bytes
-   */
-  unsigned long get_total_memory_usage ();
 };
 
 __global__ init_state (MC3DCUDA mc3d);

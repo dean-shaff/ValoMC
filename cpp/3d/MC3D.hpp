@@ -102,7 +102,8 @@ public:
   void ErrorChecks();
 
   // [AL] Function to help construct the neighborhood matrix
-  inline void search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element);
+  // [DS] Moving inline specifier to implementation, see https://isocpp.org/wiki/faq/inline-functions#where-to-put-inline-keyword
+  void search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element);
 
 public:
   // Geometry
@@ -173,7 +174,7 @@ public:
 };
 
 // Constuctor, set some default values for Monte Carlo
-MC3D::MC3D()
+inline MC3D::MC3D()
 {
   c0 = 2.99792458e11;
 
@@ -190,14 +191,14 @@ MC3D::MC3D()
 }
 
 // Nothing need to be done, Arrays will kill themselves when it's time
-MC3D::~MC3D()
+inline MC3D::~MC3D()
 {
 }
 
 // Assingment operator:
 //  This will copy references to geometrical and parametric variables
 //  Only new variables in the left hand side will be ER/EI, EBR/EBI, VER/VEI
-MC3D &MC3D::operator=(const MC3D &ref)
+inline MC3D &MC3D::operator=(const MC3D &ref)
 {
   if (this != &ref)
   {
@@ -273,37 +274,37 @@ MC3D &MC3D::operator=(const MC3D &ref)
 }
 
 // Initialize random number generator
-void MC3D::InitRand()
+inline void MC3D::InitRand()
 {
   rng.Seed(seed);
 }
 
 // Draw random number on [0, 1]
-double MC3D::UnifClosed()
+inline double MC3D::UnifClosed()
 {
   return (rng.drand_closed());
 }
 
 // Draw random number on ]0, 1[
-double MC3D::UnifOpen()
+inline double MC3D::UnifOpen()
 {
   return (rng.drand_open());
 }
 
 // Draw random number ]0, 1]
-double MC3D::UnifHalfDown()
+inline double MC3D::UnifHalfDown()
 {
   return (rng.drand_open_down());
 }
 
 // Draw random number [0, 1[
-double MC3D::UnifHalfUp()
+inline double MC3D::UnifHalfUp()
 {
   return (rng.drand_open_up());
 }
 
 // Volume of element el
-double MC3D::ElementVolume(int_fast64_t el)
+inline double MC3D::ElementVolume(int_fast64_t el)
 {
   double ax, ay, az;
   double bx, by, bz;
@@ -332,7 +333,7 @@ double MC3D::ElementVolume(int_fast64_t el)
 }
 
 // Area of boundary element ib
-double MC3D::ElementArea(int_fast64_t ib)
+inline double MC3D::ElementArea(int_fast64_t ib)
 {
   double a, b, c, area;
   a = sqrt(pow(r(BH(ib, 1), 0) - r(BH(ib, 0), 0), 2) + pow(r(BH(ib, 1), 1) - r(BH(ib, 0), 1), 2) + pow(r(BH(ib, 1), 2) - r(BH(ib, 0), 2), 2));
@@ -343,7 +344,7 @@ double MC3D::ElementArea(int_fast64_t ib)
 }
 
 // Area of face f of element el
-double MC3D::ElementArea(int_fast64_t el, long f)
+inline double MC3D::ElementArea(int_fast64_t el, long f)
 {
   double a, b, c, area;
   int i0, i1, i2;
@@ -383,7 +384,7 @@ double MC3D::ElementArea(int_fast64_t el, long f)
 }
 
 // Normal of boundary element ib
-void MC3D::Normal(int_fast64_t ib, double *normal)
+inline void MC3D::Normal(int_fast64_t ib, double *normal)
 {
   double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
 
@@ -405,7 +406,7 @@ void MC3D::Normal(int_fast64_t ib, double *normal)
 }
 
 // Normal of face f on element el
-void MC3D::Normal(int_fast64_t el, long f, double *normal)
+inline void MC3D::Normal(int_fast64_t el, long f, double *normal)
 {
   int i0, i1, i2;
   if (f == 0)
@@ -457,7 +458,7 @@ void MC3D::Normal(int_fast64_t el, long f, double *normal)
 }
 
 // Perform errorchecking and throw an error
-void MC3D::ErrorChecks()
+inline void MC3D::ErrorChecks()
 {
   /* SANITY CHECKS */
   // Check that
@@ -574,7 +575,7 @@ void MC3D::ErrorChecks()
 // Initialize Monte Carlo after geometry & material parameters have been assigned
 // Under MPI also communicates relevant parameters to other computers and initializes
 // mersenne twister with consequetive seed numbers
-void MC3D::Init()
+inline void MC3D::Init()
 {
 #ifdef USE_OMP
   threadcount = omp_get_max_threads();
@@ -739,7 +740,8 @@ void MC3D::Init()
   return;
 }
 
-void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element)
+
+inline void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element)
 {
   for (unsigned int i = 0; i < neighborlist.size(); i++)
   {
@@ -834,7 +836,7 @@ void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t
 }
 
 // Build neigbourhood HN for volumetric topology H
-void MC3D::BuildNeighbourhoods()
+inline void MC3D::BuildNeighbourhoods()
 {
   // std::cerr << "MC3D::BuildNeighbourhoods" << std::endl;
 #define NEW_NHOOD
@@ -948,7 +950,7 @@ void MC3D::BuildNeighbourhoods()
 //   LightSources will contain index to the boundary element in BH acting as lightsource
 //   LightSourcesMother will contain index to volumetric element H for which BH is attached
 //   LightSourcesCDF will be a cumulative/normalized sum of areas of all the lightsources, this will ease randomizing the creation of photons
-void MC3D::BuildLightSource()
+inline void MC3D::BuildLightSource()
 {
   int_fast64_t ii, jj, kk, ib, NLightSource;
 
@@ -1013,7 +1015,7 @@ void MC3D::BuildLightSource()
 
 // Determine which face a photon will exit a volumetric element from
 //int MC3D::WhichFace(double curpos[3], double dir[3], int el, int face, double *dist){
-int MC3D::WhichFace(Photon *phot, double *dist)
+inline int MC3D::WhichFace(Photon *phot, double *dist)
 {
   // phot - photon under test
   // dist - distance the photon can travel before hitting the face
@@ -1067,7 +1069,7 @@ int MC3D::WhichFace(Photon *phot, double *dist)
 }
 
 // Create a new photon based on LightSources, LightSourcesMother and LighSourcesCDF
-void MC3D::CreatePhoton(Photon *phot)
+inline void MC3D::CreatePhoton(Photon *phot)
 {
   double xi = UnifClosed();
 
@@ -1305,7 +1307,7 @@ void MC3D::CreatePhoton(Photon *phot)
 }
 
 // Scatter a photon
-void MC3D::ScatterPhoton(Photon *phot)
+inline void MC3D::ScatterPhoton(Photon *phot)
 {
   double xi, theta, phi;
   double dxn, dyn, dzn;
@@ -1351,7 +1353,7 @@ void MC3D::ScatterPhoton(Photon *phot)
 }
 
 // Mirror photons propagation with respect to boundary element ib
-void MC3D::MirrorPhoton(Photon *phot, int_fast64_t ib)
+inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t ib)
 {
   double n[3], cdot;
   Normal(ib, n);
@@ -1362,7 +1364,7 @@ void MC3D::MirrorPhoton(Photon *phot, int_fast64_t ib)
 }
 
 // Mirror photon with respect to face f of element el
-void MC3D::MirrorPhoton(Photon *phot, int_fast64_t el, long f)
+inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t el, long f)
 {
   double n[3], cdot;
   Normal(el, f, n);
@@ -1373,7 +1375,7 @@ void MC3D::MirrorPhoton(Photon *phot, int_fast64_t el, long f)
 }
 
 // Fresnel transmission / reflection of a photon
-int MC3D::FresnelPhoton(Photon *phot)
+inline int MC3D::FresnelPhoton(Photon *phot)
 {
   // Likelyhood of reflection:
   //   R = 0.5 ( sin^2(theta_i - theta_t) / sin^2(theta_i + theta_t) + tan^2(theta_i - theta_t) / tan^2(theta_i + theta_t))
@@ -1458,7 +1460,7 @@ int MC3D::FresnelPhoton(Photon *phot)
 }
 
 // Propagate a photon until it dies
-void MC3D::PropagatePhoton(Photon *phot)
+inline void MC3D::PropagatePhoton(Photon *phot)
 {
   double prop, dist, ds;
   int_fast64_t ib;
@@ -1632,7 +1634,7 @@ void MC3D::PropagatePhoton(Photon *phot)
 }
 
 // Run Monte Carlo
-void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int))
+inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int))
 {
 #ifdef USE_OMP
 
@@ -1816,7 +1818,7 @@ void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int))
 }
 
 // Check if ray and triangle intersect
-int RayTriangleIntersects(double O[3], double D[3], double V0[3], double V1[3], double V2[3], double *t)
+inline int RayTriangleIntersects(double O[3], double D[3], double V0[3], double V1[3], double V2[3], double *t)
 {
 // O is the origin of line, D is the direction of line
 // V0, V1, V2 are the corners of the triangle.

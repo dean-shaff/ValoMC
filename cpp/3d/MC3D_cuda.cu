@@ -825,7 +825,37 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 }
 
 
-void MC3D::allocate_attributes () {}
+void MC3D::allocate_attributes () {
+  ValoMC::util::h2d(topology, mc3d.H);
+  ValoMC::util::h2d(neighborhood, mc3d.HN);
+  ValoMC::util::h2d(boundary, mc3d.BH);
+
+  ValoMC::util::h2d(grid_nodes, mc3d.r);
+
+  ValoMC::util::h2d(light_sources, mc3d.LightSources);
+  ValoMC::util::h2d(light_sources_mother, mc3d.LightSourcesMother);
+  ValoMC::util::h2d(light_sources_cdf, mc3d.LightSourcesCDF);
+
+  ValoMC::util::h2d(BC_light_direction_type, mc3d.BCLightDirectionType);
+  ValoMC::util::h2d(BCL_normal, mc3d.BCLNormal);
+  ValoMC::util::h2d(BCn, mc3d.BCn);
+  ValoMC::util::h2d(BC_type, mc3d.BCType);
+
+  ValoMC::util::h2d(absorption, mc3d.mua);
+  ValoMC::util::h2d(scattering, mc3d.mus);
+  ValoMC::util::h2d(scattering_inhom, mc3d.g);
+  ValoMC::util::h2d(idx_refrc, mc3d.n);
+  ValoMC::util::h2d(wave_number, mc3d.k);
+  ValoMC::util::h2d(scattering_inhom_2, mc3d.g2);
+
+  ValoMC::util::h2d(pow_den_vol_real, mc3d.ER);
+  ValoMC::util::h2d(pow_den_vol_imag, mc3d.EI);
+
+  ValoMC::util::h2d(pow_den_boun_real, mc3d.EBR);
+  ValoMC::util::h2d(pow_den_boun_imag, mc3d.EBI);
+
+  omega = mc3d.omega;
+}
 
 unsigned long MC3D::get_total_memory_usage () {
   unsigned long total_memory_usage = 0;

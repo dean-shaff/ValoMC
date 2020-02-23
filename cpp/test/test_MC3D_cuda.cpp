@@ -1,3 +1,3 @@
 #include "catch.hpp"
 
-#include "MC3D_cuda.hpp"
+#include "MC3D_cuda.cuh"
