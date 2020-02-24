@@ -59,6 +59,7 @@ TEST_CASE(
 }
 
 
+
 TEMPLATE_TEST_CASE(
   "check_ptr determines if pointer was allocated on device",
   "[unit][util][cuda][check_ptr]",
@@ -80,6 +81,101 @@ TEMPLATE_TEST_CASE(
 
   gpuErrchk(cudaDeviceSynchronize());
 }
+
+
+template<typename T>
+__global__ void iter_array (Array<T>* arr, int* result) {
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  if (idx == 0) {
+    for (unsigned istep=0; istep<arr->N; istep++) {
+      (*arr)[istep];
+      *result += 1;
+    }
+  }
+}
+
+
+TEMPLATE_TEST_CASE(
+  "h2d works as expected",
+  "[util][unit][cuda][h2d]",
+  float, double
+)
+{
+  Array<TestType> arr_h;
+  arr_h.resize(10, 2);
+  for (unsigned idx=0; idx<arr_h.Nx; idx++) {
+    for (unsigned idy=0; idy<arr_h.Ny; idy++) {
+      arr_h(idx, idy) = static_cast<TestType>(idx + arr_h.Nx*idy);
+    }
+  }
+
+  Array<TestType>* arr;
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
+
+  SECTION ("h2d works in isolation") {
+    ValoMC::util::h2d(arr, &arr_h);
+  }
+
+  SECTION ("can pass Array pointer to CUDA kernel") {
+    ValoMC::util::h2d(arr, &arr_h);
+    int* result;
+    int result_h = 0;
+    gpuErrchk(cudaMalloc((void**)&result, sizeof(int)));
+    iter_array<TestType><<<1, 1>>>(arr, result);
+    gpuErrchk(cudaGetLastError());
+    gpuErrchk(cudaMemcpy(&result_h, result, sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaFree(result));
+    REQUIRE(result_h == 20);
+  }
+  gpuErrchk(cudaFree(arr));
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+
+template<typename T>
+__global__ void fill_array (Array<T>* arr, T val) {
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  // printf("fill_array: val=%f\n", val);
+  if (idx > arr->N) {
+    return;
+  }
+  for (unsigned istep=idx; istep<arr->N; istep++) {
+    (*arr)[istep] = val;
+  }
+}
+
+TEMPLATE_TEST_CASE(
+  "d2h works as expected",
+  "[util][unit][cuda][d2h]",
+  float, double
+)
+{
+  TestType val = 1.0;
+  Array<TestType> arr_h;
+  arr_h.resize(10, 2);
+
+  Array<TestType>* arr;
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
+  ValoMC::util::h2d(arr, &arr_h);
+
+  fill_array<TestType><<<1, 1>>>(arr, val);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+  ValoMC::util::d2h(&arr_h, arr);
+
+  bool all_close = true;
+
+  for (unsigned idx=0; idx<arr_h.N; idx++) {
+    if (arr_h[idx] != val) {
+      all_close = false;
+    }
+  }
+  REQUIRE(all_close == true);
+
+  gpuErrchk(cudaFree(arr));
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
 
 class ContainsArray {
 public:
@@ -144,97 +240,6 @@ __global__ void iter_obj (ContainsArray con, int* result)
 }
 
 
-template<typename T>
-__global__ void iter_array (Array<T>* arr, int* result) {
-  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
-  if (idx == 0) {
-    for (unsigned istep=0; istep<arr->N; istep++) {
-      (*arr)[istep];
-      *result += 1;
-    }
-  }
-}
-
-template<typename T>
-__global__ void fill_array (Array<T>* arr, T val) {
-  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
-  // printf("fill_array: val=%f\n", val);
-  if (idx > arr->N) {
-    return;
-  }
-  for (unsigned istep=idx; istep<arr->N; istep++) {
-    (*arr)[istep] = val;
-  }
-}
-
-TEMPLATE_TEST_CASE(
-  "h2d works as expected",
-  "[util][unit][cuda][h2d]",
-  float, double
-)
-{
-  Array<TestType> arr_h;
-  arr_h.resize(10, 2);
-  for (unsigned idx=0; idx<arr_h.Nx; idx++) {
-    for (unsigned idy=0; idy<arr_h.Ny; idy++) {
-      arr_h(idx, idy) = static_cast<TestType>(idx + arr_h.Nx*idy);
-    }
-  }
-
-  Array<TestType>* arr;
-  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
-
-  SECTION ("h2d works in isolation") {
-    ValoMC::util::h2d(arr, &arr_h);
-  }
-
-  SECTION ("can pass Array pointer to CUDA kernel") {
-    ValoMC::util::h2d(arr, &arr_h);
-    int* result;
-    int result_h = 0;
-    gpuErrchk(cudaMalloc((void**)&result, sizeof(int)));
-    iter_array<TestType><<<1, 1>>>(arr, result);
-    gpuErrchk(cudaGetLastError());
-    gpuErrchk(cudaMemcpy(&result_h, result, sizeof(int), cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaFree(result));
-    REQUIRE(result_h == 20);
-  }
-  gpuErrchk(cudaFree(arr));
-  gpuErrchk(cudaDeviceSynchronize());
-}
-
-TEMPLATE_TEST_CASE(
-  "d2h works as expected",
-  "[util][unit][cuda][d2h]",
-  float, double
-)
-{
-  TestType val = 1.0;
-  Array<TestType> arr_h;
-  arr_h.resize(10, 2);
-
-  Array<TestType>* arr;
-  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
-  ValoMC::util::h2d(arr, &arr_h);
-
-  fill_array<TestType><<<1, 1>>>(arr, val);
-  gpuErrchk(cudaGetLastError());
-  gpuErrchk(cudaDeviceSynchronize());
-  ValoMC::util::d2h(&arr_h, arr);
-
-  bool all_close = true;
-
-  for (unsigned idx=0; idx<arr_h.N; idx++) {
-    if (arr_h[idx] != val) {
-      all_close = false;
-    }
-  }
-  REQUIRE(all_close == true);
-
-  gpuErrchk(cudaFree(arr));
-  gpuErrchk(cudaDeviceSynchronize());
-}
-
 TEST_CASE (
   "Can call kernel on object containing pointers to Arrays",
   "[util][cuda][ContainsArray]"
@@ -260,6 +265,89 @@ TEST_CASE (
   REQUIRE(result_h == 20);
   con.destroy();
 }
+
+template<typename T>
+__global__ void get_Nx_Ny_Nz (Array<T>* arr, int* result)
+{
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  if (idx == 0) {
+    result[0] = arr->Nx;
+    result[1] = arr->Ny;
+    result[2] = arr->Nz;
+  }
+}
+
+
+TEMPLATE_TEST_CASE(
+  "copy_attributes works as expected",
+  "[util][unit][cuda][copy_attributes]",
+  float, double
+)
+{
+  TestType val = 1.0;
+  Array<TestType> arr_h;
+  arr_h.resize(10, 2, 2);
+
+  Array<TestType>* arr;
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
+  ValoMC::util::copy_attributes(arr, &arr_h);
+
+  std::vector<int> result_h(3);
+
+  int* result;
+  gpuErrchk(cudaMalloc((void**)&result, sizeof(int)*3));
+  get_Nx_Ny_Nz<TestType><<<1, 1>>>(arr, result);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaMemcpy(result_h.data(), result, sizeof(int)*3, cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaFree(result));
+
+  CHECK(result_h[0] == 10);
+  CHECK(result_h[1] == 2);
+  CHECK(result_h[2] == 2);
+
+  gpuErrchk(cudaFree(arr));
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+template<typename T>
+__global__ void iter_data (T* data, unsigned size, int* result)
+{
+  const unsigned idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  if (idx == 0) {
+    for (unsigned idat=0; idat<size; idat++) {
+      data[idat];
+      (*result) ++;
+    }
+  }
+}
+
+
+TEMPLATE_TEST_CASE(
+  "reserve works as expected",
+  "[util][unit][cuda][reserve]",
+  float, double
+)
+{
+  unsigned size = 10;
+  Array<TestType>* arr;
+  gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
+  ValoMC::util::reserve(arr, size);
+
+  int result_h = 0;
+  int* result;
+  cudaMalloc((void**)&result, sizeof(int));
+  iter_data<TestType><<<1, 1>>>(arr->data, size, result);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaMemcpy(&result_h, result, sizeof(int), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaFree(result));
+
+  CHECK(result == size);
+
+  gpuErrchk(cudaFree(arr));
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
 
 // TEST_CASE("Random number generators produce same statistics", "[unit][util][cuda][random]")
 // {

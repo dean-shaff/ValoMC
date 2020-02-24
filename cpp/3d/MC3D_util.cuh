@@ -96,6 +96,37 @@ namespace util {
     }
   }
 
+
+  template<typename T>
+  __host__ void copy_attributes (Array<T>* dst, Array<T>* src)
+  {
+    if (! check_device_ptr(dst)) {
+      throw std::runtime_error("dst Array must be allocated on device");
+    }
+
+    gpuErrchk(
+      cudaMemcpy(dst, src, sizeof(Array<T>), cudaMemcpyHostToDevice));
+  }
+
+  /**
+   * Reserve size bytes for dst
+   * @param dst  pointer to array allocated on device
+   * @param size number of samples to allocate
+   */
+  template<typename T>
+  __host__ void reserve (Array<T>* dst, unsigned size)
+  {
+    if (! check_device_ptr(dst)) {
+      throw std::runtime_error("dst Array must be allocated on device");
+    }
+    T* ptr;
+    gpuErrchk(
+      cudaMalloc((void**) &ptr, sizeof(T)*size));
+    gpuErrchk(
+      cudaMemcpy(&(dst->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
+
+  }
+
   /**
    * Copy contents of src to dst that has been allocated on device.
    * @param dst Array that has been allocated on device

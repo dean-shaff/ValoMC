@@ -14,9 +14,14 @@ class MC3DCUDA {
 
 public:
 
-  MC3DCUDA () {}
 
-  ~MC3DCUDA () {}
+  MC3DCUDA (MC3D& _mc3d, unsigned states_size) : mc3d(_mc3d), states_size(_mc3d) {
+    init();
+  }
+
+  ~MC3DCUDA () {
+    deallocate();
+  }
 
   __host__ __device__ void normal (
     int_fast64_t ib,
@@ -91,9 +96,20 @@ public:
   __host__ __device__ void set_omega (double _omega) { omega = _omega; }
 
   /**
-   * Helper function to allocate Array objects in device memory.
+   * Allocate Array objects in device memory.
    */
-  void allocate_attributes ();
+  void allocate ();
+
+  /**
+   * Copy arrays from host to device memory
+   */
+  void h2d ();
+
+
+  /**
+   * Copy results arrays from device to host memory
+   */
+  void d2h ();
 
   /**
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
@@ -147,6 +163,9 @@ private:
 
   // number of photons
   unsigned long nphotons;
+
+  // initialize non Array properties from mc3d object.
+  void init ();
 
 };
 

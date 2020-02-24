@@ -37,6 +37,12 @@ __global__ void monte_carlo (MC3DCUDA mc3d) {
   }
 }
 
+void MC3DCUDA::init () {
+  omega = mc3d.omega;
+  seed = mc3d.seed;
+  nphotons = static_cast<unsigned long>(mc3d.Nphoton);
+}
+
 
   // Array<int_fast64_t> H = *topology;
   // Array<int_fast64_t> HN = *neighborhood;
@@ -829,7 +835,41 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 }
 
 
-void MC3D::allocate_attributes () {
+void MC3D::allocate () {
+  cudaMalloc((void**)&topology, sizeof(Array<int_fast64_t>));
+  cudaMalloc((void**)&neighborhood, sizeof(Array<int_fast64_t>));
+  cudaMalloc((void**)&boundary, sizeof(Array<int_fast64_t>));
+
+  cudaMalloc((void**)&grid_nodes, sizeof(Array<double>));
+
+  cudaMalloc((void**)&light_sources, sizeof(Array<int>));
+  cudaMalloc((void**)&light_sources_mother, sizeof(Array<int>));
+  cudaMalloc((void**)&light_sources_cdf, sizeof(Array<double>));
+
+  cudaMalloc((void**)&BC_light_direction_type, sizeof(Array<char>));
+  cudaMalloc((void**)&BCL_normal, sizeof(Array<double>));
+  cudaMalloc((void**)&BCn, sizeof(Array<double>));
+  cudaMalloc((void**)&BC_type, sizeof(Array<char>));
+
+  cudaMalloc((void**)&absorption, sizeof(Array<double>));
+  cudaMalloc((void**)&scattering, sizeof(Array<double>));
+
+  cudaMalloc((void**)&scattering_inhom, sizeof(Array<double>));
+  cudaMalloc((void**)&idx_refrc, sizeof(Array<double>));
+  cudaMalloc((void**)&wave_number, sizeof(Array<double>));
+  cudaMalloc((void**)&scattering_inhom_2, sizeof(Array<double>));
+
+  cudaMalloc((void**)&pow_den_vol_real, sizeof(Array<double>));
+  cudaMalloc((void**)&pow_den_vol_imag, sizeof(Array<double>));
+
+  cudaMalloc((void**)&pow_den_boun_real, sizeof(Array<double>));
+  cudaMalloc((void**)&pow_den_boun_imag, sizeof(Array<double>));
+
+  // allocate curand states
+  cudaMalloc((void**)&states, sizeof(curandState_t)*states_size);
+}
+
+void MC3D::h2d () {
   ValoMC::util::h2d(topology, mc3d.H);
   ValoMC::util::h2d(neighborhood, mc3d.HN);
   ValoMC::util::h2d(boundary, mc3d.BH);
@@ -846,23 +886,33 @@ void MC3D::allocate_attributes () {
   ValoMC::util::h2d(BC_type, mc3d.BCType);
 
   ValoMC::util::h2d(absorption, mc3d.mua);
-  ValoMC::util::h2d(scattering, mc3d.mus);  double omega;
+  ValoMC::util::h2d(scattering, mc3d.mus);
 
   ValoMC::util::h2d(scattering_inhom, mc3d.g);
   ValoMC::util::h2d(idx_refrc, mc3d.n);
   ValoMC::util::h2d(wave_number, mc3d.k);
   ValoMC::util::h2d(scattering_inhom_2, mc3d.g2);
 
-  ValoMC::util::h2d(pow_den_vol_real, mc3d.ER);
-  ValoMC::util::h2d(pow_den_vol_imag, mc3d.EI);
+  ValoMC::util::copy_attributes(pow_den_vol_real, mc3d.ER);
+  ValoMC::util::reserve(pow_den_vol_real, mc3d.ER.N);
+  ValoMC::util::copy_attributes(pow_den_vol_imag, mc3d.EI);
+  ValoMC::util::reserve(pow_den_vol_imag, mc3d.EI.N);
 
-  ValoMC::util::h2d(pow_den_boun_real, mc3d.EBR);
-  ValoMC::util::h2d(pow_den_boun_imag, mc3d.EBI);
-
-  omega = mc3d.omega;
-  seed = mc3d.seed;
-  nphotons = static_cast<unsigned long>(mc3d.Nphoton);
+  ValoMC::util::copy_attributes(pow_den_boun_real, mc3d.EBR);
+  ValoMC::util::reserve(pow_den_boun_real, mc3d.EBR.N);
+  ValoMC::util::copy_attributes(pow_den_boun_imag, mc3d.EBI);
+  ValoMC::util::reserve(pow_den_boun_imag, mc3d.EBI.N);
 }
+
+
+void MC3D::d2h () {
+  ValoMC::util::d2h(mc3d.ER, pow_den_vol_real);
+  ValoMC::util::d2h(mc3d.EI, pow_den_vol_imag);
+
+  ValoMC::util::d2h(mc3d.EBR, pow_den_boun_real);
+  ValoMC::util::d2h(mc3d.EBI, pow_den_boun_imag);
+}
+
 
 unsigned long MC3D::get_total_memory_usage () {
   unsigned long total_memory_usage = 0;
@@ -893,6 +943,8 @@ unsigned long MC3D::get_total_memory_usage () {
 
   total_memory_usage += sizeof(double) * mc3d.EBR.N;
   total_memory_usage += sizeof(double) * mc3d.EBI.N;
+
+  total_memory_usage += sizeof(curandState_t) * states_size;
 
   return total_memory_usage;
 }
