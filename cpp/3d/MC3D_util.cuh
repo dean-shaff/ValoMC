@@ -51,25 +51,25 @@ namespace util {
   __host__ __device__ void sub (double dest[3], double v1[3], double v2[3]);
 
   // Create a random number on [0,1]-real-interval
-  template<typename T, typename State>
+  template<typename State, typename T>
   __device__ T rand_closed (State* state) {
     return (T)(((double) curand(state)) * limit_map::u32_max_inv);
   }
 
   // Create a random number on ]0,1[-real-interval
-  template<typename T, typename State>
+  template<typename State, typename T>
   __device__ T rand_open (State* state) {
     return (T)(((double) curand(state) + 0.5) * limit_map::u32_max_p1_inv);
   }
 
   // Create a random number on [0,1[-real-interval
-  template<typename T, typename State>
+  template<typename State, typename T>
   __device__ T rand_open_up (State* state){
     return (T)(((double) curand(state)) * limit_map::u32_max_p1_inv);
   }
 
   // Create a random number on ]0,1]-real-interval
-  template<typename T, typename State>
+  template<typename State, typename T>
   __device__ T rand_open_down (State* state) {
     return (T)(((double) curand(state) + 1.0) * limit_map::u32_max_p1_inv);
   }
@@ -124,7 +124,8 @@ namespace util {
       cudaMalloc((void**) &ptr, sizeof(T)*size));
     gpuErrchk(
       cudaMemcpy(&(dst->data), &ptr, sizeof(T*), cudaMemcpyHostToDevice));
-
+    // gpuErrchk(
+    //   cudaFree(ptr));
   }
 
   /**

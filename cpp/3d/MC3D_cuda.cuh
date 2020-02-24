@@ -15,7 +15,7 @@ class MC3DCUDA {
 public:
 
 
-  MC3DCUDA (MC3D& _mc3d, unsigned states_size) : mc3d(_mc3d), states_size(_mc3d) {
+  MC3DCUDA (MC3D& _mc3d, unsigned _states_size) : mc3d(_mc3d), states_size(_states_size) {
     init();
   }
 
@@ -101,6 +101,11 @@ public:
   void allocate ();
 
   /**
+   * Free up any memory allocates
+   */
+  void deallocate ();
+
+  /**
    * Copy arrays from host to device memory
    */
   void h2d ();
@@ -110,6 +115,8 @@ public:
    * Copy results arrays from device to host memory
    */
   void d2h ();
+
+
 
   /**
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
@@ -132,7 +139,7 @@ private:
 
   Array<char>* BC_light_direction_type; // BCLightDirectionType
   Array<double>* BCL_normal; // BCLNormal
-  Array<double>* BCn; // BCn
+  Array<double>* BC_n; // BCn
   Array<char>* BC_type; // BCType
 
   Array<double>* absorption; // mua
@@ -163,6 +170,15 @@ private:
 
   // number of photons
   unsigned long nphotons;
+
+  // weight factor from mc3d object
+  double weight0;
+
+  // chance factor from mc3d object
+  double chance;
+
+  // phase0 factor from mc3d object
+  double phase0;
 
   // initialize non Array properties from mc3d object.
   void init ();
