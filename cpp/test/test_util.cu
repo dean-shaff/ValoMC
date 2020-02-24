@@ -61,7 +61,7 @@ TEST_CASE(
 
 
 TEMPLATE_TEST_CASE(
-  "check_ptr determines if pounsigneder was allocated on device",
+  "check_ptr determines if pointer was allocated on device",
   "[unit][util][cuda][check_ptr]",
   float, Array<float>
 )
@@ -84,7 +84,7 @@ TEMPLATE_TEST_CASE(
 
 
 template<typename T>
-__global__ void iter_array (Array<T>* arr, unsigned* result) {
+__global__ void test_h2d (Array<T>* arr, unsigned* result) {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
   if (idx == 0) {
     for (unsigned istep=0; istep<arr->N; istep++) {
@@ -116,12 +116,12 @@ TEMPLATE_TEST_CASE(
     ValoMC::util::h2d(arr, &arr_h);
   }
 
-  SECTION ("can pass Array pounsigneder to CUDA kernel") {
+  SECTION ("can pass Array pointer to CUDA kernel") {
     ValoMC::util::h2d(arr, &arr_h);
     unsigned* result;
     unsigned result_h = 0;
     gpuErrchk(cudaMalloc((void**)&result, sizeof(unsigned)));
-    iter_array<TestType><<<1, 1>>>(arr, result);
+    test_h2d<TestType><<<1, 1>>>(arr, result);
     gpuErrchk(cudaGetLastError());
     gpuErrchk(cudaMemcpy(&result_h, result, sizeof(unsigned), cudaMemcpyDeviceToHost));
     gpuErrchk(cudaFree(result));
@@ -133,9 +133,9 @@ TEMPLATE_TEST_CASE(
 
 
 template<typename T>
-__global__ void fill_array (Array<T>* arr, T val) {
+__global__ void test_d2h (Array<T>* arr, T val) {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
-  // prunsignedf("fill_array: val=%f\n", val);
+  // prunsignedf("test_d2h: val=%f\n", val);
   if (idx > arr->N) {
     return;
   }
@@ -158,7 +158,7 @@ TEMPLATE_TEST_CASE(
   gpuErrchk(cudaMalloc((void**)&arr, sizeof(Array<TestType>)));
   ValoMC::util::h2d(arr, &arr_h);
 
-  fill_array<TestType><<<1, 1>>>(arr, val);
+  test_d2h<TestType><<<1, 1>>>(arr, val);
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaDeviceSynchronize());
   ValoMC::util::d2h(&arr_h, arr);
@@ -203,7 +203,7 @@ public:
 
   Array<double>* arr;
 
-private:
+protected:
 
   bool is_allocated;
 };
@@ -213,7 +213,7 @@ private:
 // };
 //
 //
-// __global__ void iter_obj (PseudoContainsArray _con, unsigned* result)
+// __global__ void test_ContainsArray (PseudoContainsArray _con, unsigned* result)
 // {
 //   ContainsArray &con = *((ContainsArray *)&_con);
 //
@@ -227,7 +227,7 @@ private:
 //   }
 // }
 
-__global__ void iter_obj (ContainsArray con, unsigned* result)
+__global__ void test_ContainsArray (ContainsArray con, unsigned* result)
 {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
   Array<double> arr = *(con.arr);
@@ -241,7 +241,7 @@ __global__ void iter_obj (ContainsArray con, unsigned* result)
 
 
 TEST_CASE (
-  "Can call kernel on object containing pounsigneders to Arrays",
+  "Can call kernel on object containing pointers to Arrays",
   "[util][cuda][ContainsArray]"
 )
 {
@@ -253,11 +253,12 @@ TEST_CASE (
   }
   con.allocate();
   ValoMC::util::h2d(con.arr, &arr_h);
+
   unsigned* result;
   unsigned result_h = 0.0;
   gpuErrchk(cudaMalloc((void**)&result, sizeof(unsigned)));
-  // iter_obj<<<1, 1>>>(*(PseudoContainsArray* )&con, result);
-  iter_obj<<<1, 1>>>(con, result);
+  // test_ContainsArray<<<1, 1>>>(*(PseudoContainsArray* )&con, result);
+  test_ContainsArray<<<1, 1>>>(con, result);
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaMemcpy(&result_h, result, sizeof(unsigned), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaFree(result));
@@ -266,8 +267,76 @@ TEST_CASE (
   con.destroy();
 }
 
+class ContainsArrayLarge : public ContainsArray {
+public:
+  char buffer[4096];
+};
+
+
+__global__ void test_pointer_to_ContainsArray (
+  ContainsArrayLarge* con, unsigned* result, double val
+)
+{
+  const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
+  Array<double> arr = *(con->arr);
+  if (idx == 0) {
+    for (unsigned istep=0; istep<arr.N; istep++) {
+      arr[istep] = val;
+      *result += 1;
+    }
+  }
+}
+
+
+TEST_CASE (
+  "Can call kernel on pointer to object containing pointers to Arrays",
+  "[util][cuda][ContainsArray]"
+)
+{
+  double val = 1.0;
+  ContainsArrayLarge con_h;
+  Array<double> arr_h;
+  arr_h.resize(10, 2);
+  for (unsigned idx=0; idx<arr_h.N; idx++) {
+    arr_h[idx] = 0.0;
+  }
+  con_h.allocate();
+  ValoMC::util::h2d(con_h.arr, &arr_h);
+
+  // now create device side:
+  ContainsArrayLarge* con_d;
+  cudaMalloc((void**)&con_d, sizeof(ContainsArrayLarge));
+  cudaMemcpy(con_d, &con_h, sizeof(ContainsArrayLarge), cudaMemcpyHostToDevice);
+
+  unsigned* result;
+  unsigned result_h = 0.0;
+  gpuErrchk(cudaMalloc((void**)&result, sizeof(unsigned)));
+  test_pointer_to_ContainsArray<<<1, 1>>>(con_d, result, val);
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaMemcpy(&result_h, result, sizeof(unsigned), cudaMemcpyDeviceToHost));
+  CHECK(result_h == 20);
+
+  // gpuErrchk(cudaMemcpy(&con_h, con_d, sizeof(ContainsArray), cudaMemcpyDeviceToHost));
+
+  ValoMC::util::d2h(&arr_h, con_h.arr);
+  bool allclose = true;
+
+  for (unsigned idx=0; idx<arr_h.N; idx++) {
+    if (arr_h[idx] != val) {
+      allclose = false;
+    }
+  }
+  CHECK(allclose == true);
+
+  gpuErrchk(cudaFree(result));
+  gpuErrchk(cudaFree(con_d))
+  con_h.destroy();
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+
 template<typename T>
-__global__ void get_Nx_Ny_Nz (Array<T>* arr, unsigned* result)
+__global__ void test_copy_attributes (Array<T>* arr, unsigned* result)
 {
   const unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
   if (idx == 0) {
@@ -295,7 +364,7 @@ TEMPLATE_TEST_CASE(
 
   unsigned* result;
   gpuErrchk(cudaMalloc((void**)&result, sizeof(unsigned)*3));
-  get_Nx_Ny_Nz<TestType><<<1, 1>>>(arr, result);
+  test_copy_attributes<TestType><<<1, 1>>>(arr, result);
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaMemcpy(result_h.data(), result, sizeof(unsigned)*3, cudaMemcpyDeviceToHost));
   gpuErrchk(cudaFree(result));
@@ -309,12 +378,12 @@ TEMPLATE_TEST_CASE(
 }
 
 template<typename T>
-__global__ void iter_data (Array<T>* arr, unsigned size, unsigned* result)
+__global__ void test_reserve (Array<T>* arr, unsigned size, unsigned* result)
 {
   const unsigned idx = threadIdx.x + blockDim.x * blockIdx.x;
-
   if (idx == 0) {
     for (unsigned idat=0; idat<size; idat++) {
+      // printf("test_reserve idat=%u, result=%u\n", idat, *result);
       arr->data[idat];
       (*result) ++;
     }
@@ -335,8 +404,9 @@ TEMPLATE_TEST_CASE(
 
   unsigned result_h = 0;
   unsigned* result;
-  cudaMalloc((void**)&result, sizeof(unsigned));
-  iter_data<TestType><<<1, 1>>>(arr, size, result);
+  gpuErrchk(cudaMalloc((void**)&result, sizeof(unsigned)));
+  gpuErrchk(cudaMemcpy(result, &result_h, sizeof(unsigned), cudaMemcpyHostToDevice));
+  test_reserve<TestType><<<1, 1>>>(arr, size, result);
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaMemcpy(&result_h, result, sizeof(unsigned), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaFree(result));

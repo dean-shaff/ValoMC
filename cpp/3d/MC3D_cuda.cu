@@ -5,31 +5,31 @@
 
 namespace ValoMC {
 
-__global__ void init_state (MC3DCUDA mc3d) {
+__global__ void init_state (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
-  const unsigned states_size = mc3d.get_states_size();
+  const unsigned states_size = mc3d->get_states_size();
   if (idx > states_size) {
     return;
   }
-  const unsigned seed = mc3d.get_seed();
+  const unsigned seed = mc3d->get_seed();
 
   for (unsigned istate=idx; istate<states_size; istate+=total_size_x) {
-    curand_init(seed, idx, 0, &mc3d.get_states()[istate]);
+    curand_init(seed, idx, 0, &mc3d->get_states()[istate]);
   }
 }
 
 
-__global__ void monte_carlo (MC3DCUDA mc3d) {
+__global__ void monte_carlo (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
-  const unsigned states_size = mc3d.get_states_size();
+  const unsigned states_size = mc3d->get_states_size();
   const unsigned increment_size = total_size_x > states_size ? states_size: total_size_x;
 
   if (idx > increment_size) {
     return;
   }
-  curandState_t local_state = mc3d.get_states()[idx];
+  curandState_t local_state = mc3d->get_states()[idx];
   Photon* photon;
   for (unsigned iphoton=idx; iphoton<mc3d.get_nphotons(); iphoton+=increment_size) {
     mc3d.create_photon(photon, &local_state);

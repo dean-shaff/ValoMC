@@ -160,16 +160,18 @@ private:
 
   // curand states for generating random numbers
   curandState_t* states;
+
   // number of states
   unsigned states_size;
-
-  double omega;
 
   // random number seed
   unsigned long seed;
 
   // number of photons
   unsigned long nphotons;
+
+  // omega factor from mc3d object
+  double omega;
 
   // weight factor from mc3d object
   double weight0;
