@@ -14,7 +14,6 @@ class MC3DCUDA {
 
 public:
 
-
   MC3DCUDA (MC3D& _mc3d, unsigned _states_size) : mc3d(_mc3d), states_size(_states_size) {
     is_allocated = false;
     init();

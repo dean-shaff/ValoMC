@@ -3,6 +3,7 @@
 
 #include <typeinfo>
 #include "Array.hpp"
+#include "matrix.h"
 #include "mex.h"
 
 
@@ -97,7 +98,7 @@ template <typename T> void Convert_mxArray(mxArray **mx, Array<T> &arr, long Nx,
   else if( typeid(T) == typeid(int_fast64_t) ) id = mxINT64_CLASS;
   else if( typeid(T) == typeid(uint_fast64_t) ) id = mxUINT64_CLASS;
   else mexErrMsgTxt("Trying to initialize mxArray with unsupported type!\n");
-  
+
   // Create array
   mwSize dims[2] = { (mwSize) Nx, (mwSize) Ny };
   *mx = mxCreateNumericArray(2, const_cast <const mwSize *> (dims), id, mxREAL);

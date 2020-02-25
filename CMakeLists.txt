@@ -11,13 +11,25 @@ else()
 endif()
 
 # for running CPP code in non matlab environment
-# find_package(Matlab REQUIRED COMPONENTS MEX_COMPILER MX_LIBRARY ENG_LIBRARY)
+find_package(Matlab COMPONENTS MEX_COMPILER MX_LIBRARY ENG_LIBRARY)
+
+set(ValoMC_COMPILE_OPTIONS "")
+set(ValoMC_LINK_OPTIONS "")
 
 if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    add_definitions(-DUSE_OMP)
+  set(ValoMC_COMPILE_OPTIONS
+    ${OpenMP_CXX_FLAGS}
+  )
+  set(ValoMC_LINK_OPTIONS
+    ${OpenMP_CXX_FLAGS}
+    ${OpenMP_EXE_LINKER_FLAGS}
+  )
+  # message("ValoMC_LINK_OPTIONS=${ValoMC_LINK_OPTIONS}")
+  # message("ValoMC_COMPILE_OPTIONS=${ValoMC_COMPILE_OPTIONS}")
+  # set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  # set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  # set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  add_definitions(-DUSE_OMP)
 endif()
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} )
@@ -44,32 +56,100 @@ else()
   set(HAVE_CUDA 0)
 endif()
 
-find_library(CUDART_LIBRARY cudart HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-
-add_executable(MC2D cpp/2d/MC2D.cpp)
-add_executable(MC3D cpp/3d/MC3D.cpp)
-
 set(CPP_3D_DIR
   ${CMAKE_SOURCE_DIR}/cpp/3d
 )
+set(mc3d_LINK_LIBRARIES "")
+set(mc3d_INCLUDE_DIRECTORIES "")
+
+if (HAVE_CUDA)
+  find_library(CUDART_LIBRARY cudart HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+  set(mc3d_SOURCES
+    ${CPP_3D_DIR}/MC3D_util.cu
+    ${CPP_3D_DIR}/MC3D_cuda.cu
+    ${CPP_3D_DIR}/MC3D_cuda_bridge.cu
+  )
+
+  set(mc3d_LINK_LIBRARIES
+    ${CUDART_LIBRARY}
+  )
+  set(mc3d_INCLUDE_DIRECTORIES
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+    ${CPP_3D_DIR}
+  )
+
+  add_library(mc3d SHARED ${mc3d_SOURCES})
+  target_include_directories(mc3d PUBLIC ${mc3d_INCLUDE_DIRECTORIES})
+  target_link_libraries(mc3d PUBLIC ${mc3d_LINK_LIBRARIES} ${ValoMC_LINK_OPTIONS})
+  target_compile_options(mc3d PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
+
+endif()
+
+set(standalone_EXECUTABLES
+  MC2D
+  MC3D
+)
+
+set(MC2D_SOURCES
+  cpp/2d/MC2D.cpp
+)
+
+set(MC3D_SOURCES
+  cpp/3d/MC3D.cpp
+)
+
+foreach(exe ${standalone_EXECUTABLES})
+  add_executable(${exe} ${${exe}_SOURCES})
+  target_link_libraries(${exe} PUBLIC ${ValoMC_LINK_OPTIONS})
+  target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
+endforeach()
 
 add_subdirectory(cpp/test)
 add_subdirectory(cpp/bench)
 
-
 if (Matlab_FOUND)
-   matlab_add_mex(NAME MC2Dmex OUTPUT_NAME MC2Dmex ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp)
-   matlab_add_mex(NAME MC3Dmex OUTPUT_NAME MC3Dmex ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/MC3Dmex.cpp)
-   matlab_add_mex(NAME createBH3 OUTPUT_NAME createBH3 ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/createBH3mex.cpp)
-   get_filename_component(Matlab_MX_LIBRARY_PATH ${Matlab_MX_LIBRARY} DIRECTORY)
-   find_library(Matlab_UT_LIBRARY NAME libut.lib libut.so HINTS ${Matlab_MX_LIBRARY_PATH})
-   if(Matlab_UT_LIBRARY)
-           message("UT library found, adding support for CTRL-C")
-           target_link_libraries(MC2Dmex ${Matlab_UT_LIBRARY} )
-           target_link_libraries(MC3Dmex ${Matlab_UT_LIBRARY} )
-           target_link_libraries(createBH3 ${Matlab_UT_LIBRARY} )
-           add_definitions(-D_MAKE_CTRL_C_POSSIBLE_)
-   else()
-           message("No UT library found, no support for CTRL-C")
-   endif()
+
+  # message("Matlab_MX_LIBRARY=${Matlab_MX_LIBRARY}")
+  get_filename_component(Matlab_MX_LIBRARY_PATH ${Matlab_MX_LIBRARY} DIRECTORY)
+  find_library(Matlab_UT_LIBRARY NAME libut.lib libut.so HINTS ${Matlab_MX_LIBRARY_PATH})
+
+  set(MC2Dmex_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp
+  )
+  set(MC3Dmex_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/MC3Dmex.cpp
+  )
+  set(createBH3_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/createBH3mex.cpp
+  )
+
+  set(matlab_EXECUTABLES
+    MC2Dmex
+    MC3Dmex
+    createBH3
+  )
+
+  foreach(exe ${matlab_EXECUTABLES})
+    matlab_add_mex(NAME ${exe} OUTPUT_NAME ${exe} SRC ${${exe}_SOURCES})
+    target_link_libraries(${exe} ${ValoMC_LINK_OPTIONS} ${Matlab_MX_LIBRARY})
+    target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS} -fpermissive)
+    if (Matlab_UT_LIBRARY)
+      target_link_libraries(${exe} ${Matlab_UT_LIBRARY})
+      target_compile_definitions(${exe} PRIVATE _MAKE_CTRL_C_POSSIBLE_)
+    endif()
+  endforeach()
+
+  # if (Matlab_UT_LIBRARY)
+  #   message("UT library found, adding support for CTRL-C")
+  #   target_link_libraries(MC2Dmex ${Matlab_UT_LIBRARY} )
+  #   target_link_libraries(MC3Dmex ${Matlab_UT_LIBRARY} )
+  #   target_link_libraries(createBH3 ${Matlab_UT_LIBRARY} )
+  #   add_definitions(-D_MAKE_CTRL_C_POSSIBLE_)
+  # else()
+  #   message("No UT library found, no support for CTRL-C")
+  # endif()
+  if (HAVE_CUDA)
+    target_link_libraries(MC3Dmex PUBLIC ${mc3d_LINK_LIBRARIES} mc3d)
+  endif()
 endif()

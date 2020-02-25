@@ -8,20 +8,22 @@
 static ValoMC::test::util::TestConfig config;
 
 TEST_CASE(
-  "",
-  "[MC3DCUDA][unit][get_total_memory_usage]"
+  "Can call bridging code from C++ source file",
+  "[bridge][unit][monte_carlo]"
 )
 {
-
   unsigned states_size = 100;
+  unsigned nphotons = 100;
 
   config.init_MC3D_from_json();
 
-  ValoMC::MC3DCUDA mc3dcuda(config.get_mc3d(), 0);
+  MC3D mc3d = config.get_mc3d();
+  mc3d.Nphoton = nphotons;
 
-  unsigned int baseline = mc3dcuda.get_total_memory_usage();
-  mc3dcuda.set_states_size(states_size);
-  unsigned int usage = mc3dcuda.get_total_memory_usage();
+  REQUIRE_THROWS(ValoMC::monte_carlo(mc3d, states_size));
 
-  REQUIRE(usage - baseline == sizeof(curandState_t)*states_size);
+  mc3d.ErrorChecks();
+  mc3d.Init();
+
+  ValoMC::monte_carlo(mc3d, states_size);
 }

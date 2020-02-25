@@ -1,18 +1,15 @@
-set(BENCH_INCLUDE_DIRECTORIES
-  ${CPP_3D_DIR}
-  ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
-  ${CMAKE_SOURCE_DIR}/cpp
-)
+if (HAVE_CUDA)
+  set(bench_INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/cpp
+  )
 
+  set(bench_SOURCES
+    ${CMAKE_SOURCE_DIR}/cpp/test/util.cpp
+    bench.cu
+  )
 
-set(BENCH_SOURCES
-  ${CPP_3D_DIR}/MC3D_util.cu
-  ${CPP_3D_DIR}/MC3D_cuda.cu
-  ${CMAKE_SOURCE_DIR}/cpp/test/util.cpp
-  bench.cu
-)
-
-add_executable(bench ${BENCH_SOURCES})
-target_include_directories(bench PUBLIC ${BENCH_INCLUDE_DIRECTORIES})
-target_link_libraries(bench PUBLIC ${CUDART_LIBRARY})
-target_compile_options(bench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
+  add_executable(bench ${bench_SOURCES})
+  target_include_directories(bench PUBLIC ${mc3d_INCLUDE_DIRECTORIES} ${bench_INCLUDE_DIRECTORIES})
+  target_link_libraries(bench PUBLIC ${mc3d_LINK_LIBRARIES} mc3d)
+  target_compile_options(bench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
+endif()
