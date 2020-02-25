@@ -165,3 +165,33 @@ TEST_CASE(
   REQUIRE(allclose == true);
   gpuErrchk(cudaDeviceSynchronize());
 }
+
+
+TEST_CASE(
+  "MC3DCUDA can do monte_carlo simulation",
+  "[MC3DCUDA][unit][monte_carlo]"
+)
+{
+  config.init_MC3D_from_json();
+
+  MC3D mc3d = config.get_mc3d();
+  mc3d.Nphoton = 100;
+
+  ValoMC::MC3DCUDA mc3dcuda(mc3d, 100);
+
+  mc3dcuda.allocate();
+  mc3dcuda.h2d();
+  mc3dcuda.monte_carlo();
+  mc3dcuda.d2h();
+
+  bool allclose = true;
+
+  for (unsigned idx=0; idx<mc3d.ER.N; idx++) {
+    if (mc3d.ER[idx] != 0.0) {
+      allclose = false;
+    }
+  }
+
+  REQUIRE(allclose == false);
+  gpuErrchk(cudaDeviceSynchronize());
+}

@@ -13,18 +13,27 @@ __global__ void init_state (MC3DCUDA* mc3d) {
     return;
   }
   const unsigned seed = mc3d->get_seed();
+  curandState_t* states = mc3d->get_states();
+  if (total_size_x == 1) {
+    printf("init_state: seed=%u\n", seed);
+  }
 
   for (unsigned istate=idx; istate<states_size; istate+=total_size_x) {
-    curand_init(seed, idx, 0, &mc3d->get_states()[istate]);
+    curand_init(seed, idx, 0, &states[istate]);
   }
 }
 
 
-__global__ void monte_carlo (MC3DCUDA* mc3d) {
+__global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
   const unsigned states_size = mc3d->get_states_size();
   const unsigned increment_size = total_size_x > states_size ? states_size: total_size_x;
+
+  if (total_size_x == 1) {
+    printf("monte_carlo_atomicAdd\n");
+  }
+
 
   if (idx > increment_size) {
     return;
@@ -956,6 +965,19 @@ void MC3DCUDA::d2h () {
 
   ValoMC::util::d2h(&mc3d.EBR, pow_den_boun_real);
   ValoMC::util::d2h(&mc3d.EBI, pow_den_boun_imag);
+}
+
+void MC3DCUDA::monte_carlo () {
+  MC3DCUDA* mc3dcuda_d;
+  gpuErrchk(cudaMalloc((void**)&mc3dcuda_d, sizeof(MC3DCUDA)));
+  gpuErrchk(cudaMemcpy(mc3dcuda_d, this, sizeof(MC3DCUDA), cudaMemcpyHostToDevice));
+
+  init_state<<<1,1>>>(mc3dcuda_d);
+  gpuErrchk(cudaGetLastError());
+  // monte_carlo_atomicAdd<<<1,1>>>(mc3dcuda_d);
+  // gpuErrchk(cudaGetLastError());
+
+  gpuErrchk(cudaFree(mc3dcuda_d));
 }
 
 

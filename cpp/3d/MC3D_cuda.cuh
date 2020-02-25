@@ -1,5 +1,5 @@
-#ifndef __MC3D_cuda_hpp
-#define __MC3D_cuda_hpp
+#ifndef __MC3D_cuda_cuh
+#define __MC3D_cuda_cuh
 
 #include <inttypes.h> // for int_fast64_t without std:: prefix
 
@@ -111,7 +111,6 @@ public:
    */
   void h2d ();
 
-
   /**
    * Copy results arrays from device to host memory
    */
@@ -119,6 +118,12 @@ public:
 
   // initialize non Array properties from mc3d object.
   void init ();
+
+  /**
+   * Do monte carlo simulation
+   */
+  void monte_carlo ();
+
 
   /**
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
@@ -253,8 +258,8 @@ private:
 
 };
 
-__global__ void init_state (MC3DCUDA mc3d);
-__global__ void monte_carlo (MC3DCUDA mc3d);
+__global__ void init_state (MC3DCUDA* mc3d);
+__global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d);
 
 }
 
