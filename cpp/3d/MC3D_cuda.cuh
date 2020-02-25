@@ -126,6 +126,70 @@ public:
    */
   unsigned long get_total_memory_usage ();
 
+  Array<int_fast64_t>* get_topology () { return topology; }
+  const Array<int_fast64_t>* get_topology () const { return topology; }
+
+  Array<int_fast64_t>* get_neighborhood () { return neighborhood; }
+  const Array<int_fast64_t>* get_neighborhood () const { return neighborhood; }
+
+  Array<int_fast64_t>* get_boundary () { return boundary; }
+  const Array<int_fast64_t>* get_boundary () const { return boundary; }
+
+  Array<double>* get_grid_nodes () {return grid_nodes;}
+  const Array<double>* get_grid_nodes () const {return grid_nodes;}
+
+  Array<int>* get_light_sources () {return light_sources;}
+  const Array<int>* get_light_sources () const {return light_sources;}
+
+  Array<int>* get_light_sources_mother () {return light_sources_mother;}
+  const Array<int>* get_light_sources_mother () const {return light_sources_mother;}
+
+  Array<double>* get_light_sources_cdf () {return light_sources_cdf;}
+  const Array<double>* get_light_sources_cdf () const {return light_sources_cdf;}
+
+  Array<char>* get_BC_light_direction_type () {return BC_light_direction_type;}
+  const Array<char>* get_BC_light_direction_type () const {return BC_light_direction_type;}
+
+  Array<double>* get_BCL_normal () {return BCL_normal;}
+  const Array<double>* get_BCL_normal () const {return BCL_normal;}
+
+  Array<double>* get_BC_n () {return BC_n;}
+  const Array<double>* get_BC_n () const {return BC_n;}
+
+  Array<char>* get_BC_type () {return BC_type;}
+  const Array<char>* get_BC_type () const {return BC_type;}
+
+  Array<double>* get_absorption () {return absorption;}
+  const Array<double>* get_absorption () const {return absorption;}
+
+  Array<double>* get_scattering () {return scattering;}
+  const Array<double>* get_scattering () const {return scattering;}
+
+  Array<double>* get_scattering_inhom () {return scattering_inhom;}
+  const Array<double>* get_scattering_inhom () const {return scattering_inhom;}
+
+  Array<double>* get_idx_refrc () {return idx_refrc;}
+  const Array<double>* get_idx_refrc () const {return idx_refrc;}
+
+  Array<double>* get_wave_number () {return wave_number;}
+  const Array<double>* get_wave_number () const {return wave_number;}
+
+  Array<double>* get_scattering_inhom_2 () {return scattering_inhom_2;}
+  const Array<double>* get_scattering_inhom_2 () const {return scattering_inhom_2;}
+
+  Array<double>* get_pow_den_vol_real () {return pow_den_vol_real;}
+  const Array<double>* get_pow_den_vol_real () const {return pow_den_vol_real;}
+
+  Array<double>* get_pow_den_vol_imag () {return pow_den_vol_imag;}
+  const Array<double>* get_pow_den_vol_imag () const {return pow_den_vol_imag;}
+
+  Array<double>* get_pow_den_boun_real () {return pow_den_boun_real;}
+  const Array<double>* get_pow_den_boun_real () const {return pow_den_boun_real;}
+
+  Array<double>* get_pow_den_boun_imag () {return pow_den_boun_imag;}
+  const Array<double>* get_pow_den_boun_imag () const {return pow_den_boun_imag;}
+
+
 
 private:
 
