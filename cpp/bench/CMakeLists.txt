@@ -1,12 +1,14 @@
 set(BENCH_INCLUDE_DIRECTORIES
   ${CPP_3D_DIR}
   ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+  ${CMAKE_SOURCE_DIR}/cpp
 )
 
 
 set(BENCH_SOURCES
   ${CPP_3D_DIR}/MC3D_util.cu
   ${CPP_3D_DIR}/MC3D_cuda.cu
+  ${CMAKE_SOURCE_DIR}/cpp/test/util.cpp
   bench.cu
 )
 

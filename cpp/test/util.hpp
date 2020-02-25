@@ -6,14 +6,9 @@
 #include <ctime>
 #include <cmath>
 
-#include "catch.hpp"
-
 #include "MC3D.hpp"
 #include "Array.hpp"
 
-CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
-  return std::string(errorstring(ex));
-}
 
 namespace ValoMC {
 namespace test {

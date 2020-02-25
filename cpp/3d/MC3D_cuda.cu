@@ -977,9 +977,25 @@ void MC3DCUDA::monte_carlo () {
   gpuErrchk(cudaMalloc((void**)&mc3dcuda_d, sizeof(MC3DCUDA)));
   gpuErrchk(cudaMemcpy(mc3dcuda_d, this, sizeof(MC3DCUDA), cudaMemcpyHostToDevice));
 
-  init_state<<<1,1>>>(mc3dcuda_d);
+  unsigned block_size_init_state = 64;
+  unsigned grid_size_init_state = states_size / block_size_init_state;
+  if (grid_size_init_state == 0) {
+    grid_size_init_state++;
+  }
+
+  unsigned block_size_monte_carlo = states_size;
+  unsigned grid_size_monte_carlo = 1;
+  if (block_size_monte_carlo > 1024) {
+    block_size_monte_carlo = 1024;
+    grid_size_monte_carlo = states_size / block_size_monte_carlo;
+  }
+
+  std::cerr << "init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
+  std::cerr << "monte_carlo<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
+
+  init_state<<<grid_size_init_state, block_size_init_state>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());
-  monte_carlo_atomicAdd<<<1,1>>>(mc3dcuda_d);
+  monte_carlo_atomicAdd<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());
 
   gpuErrchk(cudaFree(mc3dcuda_d));

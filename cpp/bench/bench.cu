@@ -17,8 +17,11 @@ int main (int argc, char *argv[]) {
     nphotons = std::stoi(argv[1]);
   }
 
+  auto t0 = now();
   static ValoMC::test::util::TestConfig config;
   config.init_MC3D_from_json();
+  duration delta_io = now() - t0;
+  std::cerr << "Took " << delta_io.count() << " s to load data from disk" << std::endl;
 
   MC3D mc3d = config.get_mc3d();
 
@@ -26,11 +29,16 @@ int main (int argc, char *argv[]) {
   mc3d.ErrorChecks();
   mc3d.Init();
 
-  MC3DCUDA mc3dcuda (mc3d, nphotons);
+  t0 = now();
+  ValoMC::MC3DCUDA mc3dcuda (mc3d, nphotons);
   mc3dcuda.allocate();
   mc3dcuda.h2d();
+  cudaDeviceSynchronize();
+  duration delta_h2d = now() - t0;
 
-  auto t0 = now();
+  std::cerr << "Took " << delta_h2d.count() << " s to transfer to GPU" << std::endl;
+
+  t0 = now();
   mc3d.MonteCarlo(
     [](double perc) -> bool {return true;},
     [](int csum, int Nphoton) {

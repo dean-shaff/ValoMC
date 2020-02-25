@@ -5,6 +5,11 @@
 #include "MC3D_cuda.cuh"
 #include "util.hpp"
 
+CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
+  return std::string(errorstring(ex));
+}
+
+
 static ValoMC::test::util::TestConfig config;
 
 TEST_CASE(

@@ -8,6 +8,11 @@
 
 static ValoMC::test::util::TestConfig config;
 
+CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
+  return std::string(errorstring(ex));
+}
+
+
 TEST_CASE ("MC3D", "[unit][MC3D]")
 {
   config.init_MC3D_from_json();
