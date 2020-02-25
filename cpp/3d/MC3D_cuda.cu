@@ -14,9 +14,9 @@ __global__ void init_state (MC3DCUDA* mc3d) {
   }
   const unsigned seed = mc3d->get_seed();
   curandState_t* states = mc3d->get_states();
-  if (total_size_x == 1) {
-    printf("init_state: seed=%u\n", seed);
-  }
+  // if (total_size_x == 1) {
+  //   printf("init_state: seed=%u\n", seed);
+  // }
 
   for (unsigned istate=idx; istate<states_size; istate+=total_size_x) {
     curand_init(seed, idx, 0, &states[istate]);
@@ -30,19 +30,23 @@ __global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
   const unsigned states_size = mc3d->get_states_size();
   const unsigned increment_size = total_size_x > states_size ? states_size: total_size_x;
 
-  if (total_size_x == 1) {
-    printf("monte_carlo_atomicAdd\n");
-  }
+  // if (total_size_x == 1) {
+  //   printf("monte_carlo_atomicAdd\n");
+  // }
 
 
   if (idx > increment_size) {
     return;
   }
-  curandState_t local_state = mc3d->get_states()[idx];
-  Photon* photon;
+  curandState_t* states = mc3d->get_states();
+  curandState_t local_state = states[idx];
+  Photon photon;
   for (unsigned iphoton=idx; iphoton<mc3d->get_nphotons(); iphoton+=increment_size) {
-    mc3d->create_photon(photon, &local_state);
-    mc3d->propagate_photon(photon, &local_state);
+    // if (total_size_x == 1) {
+    //   printf("monte_carlo_atomicAdd: idx=%u\n", iphoton);
+    // }
+    mc3d->create_photon(&photon, &local_state);
+    mc3d->propagate_photon(&photon, &local_state);
   }
 }
 
@@ -231,6 +235,7 @@ __host__ __device__ int MC3DCUDA::which_face (
 
 __device__ void MC3DCUDA::create_photon (Photon* phot, curandState_t* state)
 {
+  // printf("MC3DCUDA::create_photon\n");
   double xi = ValoMC::util::rand_closed<curandState_t, double>(state);
 
   double n[3], t[3], norm;
@@ -974,8 +979,8 @@ void MC3DCUDA::monte_carlo () {
 
   init_state<<<1,1>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());
-  // monte_carlo_atomicAdd<<<1,1>>>(mc3dcuda_d);
-  // gpuErrchk(cudaGetLastError());
+  monte_carlo_atomicAdd<<<1,1>>>(mc3dcuda_d);
+  gpuErrchk(cudaGetLastError());
 
   gpuErrchk(cudaFree(mc3dcuda_d));
 }

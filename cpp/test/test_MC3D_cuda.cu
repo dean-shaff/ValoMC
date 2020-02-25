@@ -101,8 +101,9 @@ TEST_CASE(
 )
 {
   config.init_MC3D_from_json();
+  MC3D mc3d = config.get_mc3d();
 
-  ValoMC::MC3DCUDA mc3dcuda(config.get_mc3d(), 1);
+  ValoMC::MC3DCUDA mc3dcuda(mc3d, 1);
 
   mc3dcuda.allocate();
   mc3dcuda.h2d();
@@ -176,6 +177,8 @@ TEST_CASE(
 
   MC3D mc3d = config.get_mc3d();
   mc3d.Nphoton = 100;
+  mc3d.ErrorChecks();
+  mc3d.Init();
 
   ValoMC::MC3DCUDA mc3dcuda(mc3d, 100);
 
