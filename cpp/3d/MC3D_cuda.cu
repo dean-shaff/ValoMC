@@ -31,9 +31,9 @@ __global__ void monte_carlo (MC3DCUDA* mc3d) {
   }
   curandState_t local_state = mc3d->get_states()[idx];
   Photon* photon;
-  for (unsigned iphoton=idx; iphoton<mc3d.get_nphotons(); iphoton+=increment_size) {
-    mc3d.create_photon(photon, &local_state);
-    mc3d.propagate_photon(photon, &local_state);
+  for (unsigned iphoton=idx; iphoton<mc3d->get_nphotons(); iphoton+=increment_size) {
+    mc3d->create_photon(photon, &local_state);
+    mc3d->propagate_photon(photon, &local_state);
   }
 }
 
@@ -841,71 +841,77 @@ __device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
 
 
 void MC3DCUDA::allocate () {
-  cudaMalloc((void**)&topology, sizeof(Array<int_fast64_t>));
-  cudaMalloc((void**)&neighborhood, sizeof(Array<int_fast64_t>));
-  cudaMalloc((void**)&boundary, sizeof(Array<int_fast64_t>));
+  if (! is_allocated) {
+    gpuErrchk(cudaMalloc((void**)&topology, sizeof(Array<int_fast64_t>)));
+    gpuErrchk(cudaMalloc((void**)&neighborhood, sizeof(Array<int_fast64_t>)));
+    gpuErrchk(cudaMalloc((void**)&boundary, sizeof(Array<int_fast64_t>)));
 
-  cudaMalloc((void**)&grid_nodes, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&grid_nodes, sizeof(Array<double>)));
 
-  cudaMalloc((void**)&light_sources, sizeof(Array<int>));
-  cudaMalloc((void**)&light_sources_mother, sizeof(Array<int>));
-  cudaMalloc((void**)&light_sources_cdf, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&light_sources, sizeof(Array<int>)));
+    gpuErrchk(cudaMalloc((void**)&light_sources_mother, sizeof(Array<int>)));
+    gpuErrchk(cudaMalloc((void**)&light_sources_cdf, sizeof(Array<double>)));
 
-  cudaMalloc((void**)&BC_light_direction_type, sizeof(Array<char>));
-  cudaMalloc((void**)&BCL_normal, sizeof(Array<double>));
-  cudaMalloc((void**)&BC_n, sizeof(Array<double>));
-  cudaMalloc((void**)&BC_type, sizeof(Array<char>));
+    gpuErrchk(cudaMalloc((void**)&BC_light_direction_type, sizeof(Array<char>)));
+    gpuErrchk(cudaMalloc((void**)&BCL_normal, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&BC_n, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&BC_type, sizeof(Array<char>)));
 
-  cudaMalloc((void**)&absorption, sizeof(Array<double>));
-  cudaMalloc((void**)&scattering, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&absorption, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&scattering, sizeof(Array<double>)));
 
-  cudaMalloc((void**)&scattering_inhom, sizeof(Array<double>));
-  cudaMalloc((void**)&idx_refrc, sizeof(Array<double>));
-  cudaMalloc((void**)&wave_number, sizeof(Array<double>));
-  cudaMalloc((void**)&scattering_inhom_2, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&scattering_inhom, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&idx_refrc, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&wave_number, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&scattering_inhom_2, sizeof(Array<double>)));
 
-  cudaMalloc((void**)&pow_den_vol_real, sizeof(Array<double>));
-  cudaMalloc((void**)&pow_den_vol_imag, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&pow_den_vol_real, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&pow_den_vol_imag, sizeof(Array<double>)));
 
-  cudaMalloc((void**)&pow_den_boun_real, sizeof(Array<double>));
-  cudaMalloc((void**)&pow_den_boun_imag, sizeof(Array<double>));
+    gpuErrchk(cudaMalloc((void**)&pow_den_boun_real, sizeof(Array<double>)));
+    gpuErrchk(cudaMalloc((void**)&pow_den_boun_imag, sizeof(Array<double>)));
 
-  // allocate curand states
-  cudaMalloc((void**)&states, sizeof(curandState_t)*states_size);
+    // allocate curand states
+    gpuErrchk(cudaMalloc((void**)&states, sizeof(curandState_t)*states_size));
+    is_allocated = true;
+  }
+
 }
 
 void MC3DCUDA::deallocate () {
-  cudaFree(topology);
-  cudaFree(neighborhood);
-  cudaFree(boundary);
+  if (is_allocated) {
+    gpuErrchk(cudaFree(topology));
+    gpuErrchk(cudaFree(neighborhood));
+    gpuErrchk(cudaFree(boundary));
 
-  cudaFree(grid_nodes);
+    gpuErrchk(cudaFree(grid_nodes));
 
-  cudaFree(light_sources);
-  cudaFree(light_sources_mother);
-  cudaFree(light_sources_cdf);
+    gpuErrchk(cudaFree(light_sources));
+    gpuErrchk(cudaFree(light_sources_mother));
+    gpuErrchk(cudaFree(light_sources_cdf));
 
-  cudaFree(BC_light_direction_type);
-  cudaFree(BCL_normal);
-  cudaFree(BC_n);
-  cudaFree(BC_type);
+    gpuErrchk(cudaFree(BC_light_direction_type));
+    gpuErrchk(cudaFree(BCL_normal));
+    gpuErrchk(cudaFree(BC_n));
+    gpuErrchk(cudaFree(BC_type));
 
-  cudaFree(absorption);
-  cudaFree(scattering);
+    gpuErrchk(cudaFree(absorption));
+    gpuErrchk(cudaFree(scattering));
 
-  cudaFree(scattering_inhom);
-  cudaFree(idx_refrc);
-  cudaFree(wave_number);
-  cudaFree(scattering_inhom_2);
+    gpuErrchk(cudaFree(scattering_inhom));
+    gpuErrchk(cudaFree(idx_refrc));
+    gpuErrchk(cudaFree(wave_number));
+    gpuErrchk(cudaFree(scattering_inhom_2));
 
-  cudaFree(pow_den_vol_real);
-  cudaFree(pow_den_vol_imag);
+    gpuErrchk(cudaFree(pow_den_vol_real));
+    gpuErrchk(cudaFree(pow_den_vol_imag));
 
-  cudaFree(pow_den_boun_real);
-  cudaFree(pow_den_boun_imag);
+    gpuErrchk(cudaFree(pow_den_boun_real));
+    gpuErrchk(cudaFree(pow_den_boun_imag));
 
-  // allocate curand states
-  cudaFree(states);
+    // allocate curand states
+    gpuErrchk(cudaFree(states));
+  }
 }
 
 void MC3DCUDA::h2d () {

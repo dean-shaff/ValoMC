@@ -16,6 +16,7 @@ public:
 
 
   MC3DCUDA (MC3D& _mc3d, unsigned _states_size) : mc3d(_mc3d), states_size(_states_size) {
+    is_allocated = false;
     init();
   }
 
@@ -116,7 +117,8 @@ public:
    */
   void d2h ();
 
-
+  // initialize non Array properties from mc3d object.
+  void init ();
 
   /**
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
@@ -182,8 +184,8 @@ private:
   // phase0 factor from mc3d object
   double phase0;
 
-  // initialize non Array properties from mc3d object.
-  void init ();
+  // flag indicating whether `allocate` has been called
+  bool is_allocated;
 
 };
 
