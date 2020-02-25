@@ -49,7 +49,13 @@ find_library(CUDART_LIBRARY cudart HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}
 add_executable(MC2D cpp/2d/MC2D.cpp)
 add_executable(MC3D cpp/3d/MC3D.cpp)
 
+set(CPP_3D_DIR
+  ${CMAKE_SOURCE_DIR}/cpp/3d
+)
+
 add_subdirectory(cpp/test)
+add_subdirectory(cpp/bench)
+
 
 if (Matlab_FOUND)
    matlab_add_mex(NAME MC2Dmex OUTPUT_NAME MC2Dmex ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp)
