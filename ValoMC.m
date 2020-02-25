@@ -91,22 +91,22 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
     else
         dimensionality = 3;
     end
-    
-    
+
+
     % Add optional fields related to vmcmedium
-    
+
     vmcmedium = createMedium(vmcmesh,vmcmedium);
-    
+
     % Add optional fields related to boundary
 
     vmcboundary = createBoundary(vmcmesh, vmcmedium, vmcboundary);
-    
+
     % Construct exterior index of refraction but avoid overriding
     if(~isfield(vmcboundary, 'exterior_refractive_index'))
         vmcboundary_ext = createBoundary(vmcmesh, vmcmedium);
         vmcboundary.exterior_refractive_index = vmcboundary_ext.exterior_refractive_index;
     end
-    
+
     if(~isfield(vmcmesh, 'HN'))
         vmcmesh.HN = [];
     end
@@ -174,7 +174,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
             phase0 = double(vmcoptions.phase0);
         end
         if(isfield(vmcoptions, 'disable_progressbar'))
-            if(vmcoptions.disable_progressbar) 
+            if(vmcoptions.disable_progressbar)
                 disable_pbar = int64(1);
             end
         end
@@ -272,7 +272,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
         end
       else if(dimensionality == 3)
         if(any(find(BCType == int8('p'))))
-            if(~isfield(vmcboundary,'lightsource_position') || length(vmcboundary.lightsource_position) ~= size(BH,1)) 
+            if(~isfield(vmcboundary,'lightsource_position') || length(vmcboundary.lightsource_position) ~= size(BH,1))
                 error('Please provide relative positions for pencil beam using lightsource_position');
             end
             vmcboundary.lightsource_direction_type = ...
@@ -290,21 +290,21 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
             end
             BCLightDirectionType(find(BCType == int8('p'))) = int8('p');
         end
-        if(isfield(vmcoptions,'export_filename'))        
-            
+        if(isfield(vmcoptions,'export_filename'))
+
             fp = fopen(vmcoptions.export_filename, 'w');
-            fprintf(fp, '%d %d %d %d\n', size(H, 1), size(BH, 1), size(r, 1), Nphoton);    
+            fprintf(fp, '%d %d %d %d\n', size(H, 1), size(BH, 1), size(r, 1), Nphoton);
             fprintf(fp, '%18.10f %18.10f %d %d\n', f, phase0, rnseed(1), rnseed(2));
 
             if(isfield(vmcmedium,'nx') && isfield(vmcmedium,'ny') && ...
                isfield(vmcmedium,'nz'))
                 fprintf(fp, '%i %i %i\n', vmcmedium.nx, vmcmedium.ny, vmcmedium.nz);
-            else 
+            else
                 fprintf(fp, '0 0 0\n');
-            end 
+            end
             fprintf(fp, 'H\n');
             fprintf(fp, '%d %d %d %d\n', H');
-            fprintf(fp, 'BH\n');    
+            fprintf(fp, 'BH\n');
             fprintf(fp, '%d %d %d\n', BH');
             fprintf(fp, 'r\n');
             fprintf(fp, '%18.10f %18.10f %18.10f\n', r');
@@ -342,7 +342,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
                 'disable_pbar', 'rnseed'...
             );
 
-            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed));
+            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), false);
         end
         if(isfield(vmcmedium,'nx') && isfield(vmcmedium,'ny') && isfield(vmcmedium,'nz'))
             % Three dimensional input
@@ -417,14 +417,14 @@ function array_out  = extendCellArray(array_in, desired_size)
 end
 
 function c = controlStringToCharacter(string, default)
-%CONTROLSTRINGTOCHARACTER Convert a control string to a single character for the C++ code 
+%CONTROLSTRINGTOCHARACTER Convert a control string to a single character for the C++ code
 %
 %
 % DESCRIPTION:
-%       (ValoMC internal use only) 
+%       (ValoMC internal use only)
 %       Converts strings that are used in the ValoMC Matlab interface like 'cosinic'
 %       into a single byte character. For example 'gaussian' -> 'g'
-%   
+%
 % USAGE:
 %       output = controlStringToCharacter('gaussian', 'n')
 %
@@ -434,7 +434,7 @@ function c = controlStringToCharacter(string, default)
 %
 % OUTPUTS:
 %       c          - Converted character
-    
+
       if(strcmp(string,'none')) c = 'a';
       elseif(strcmp(string,'direct')) c = 'l';
       elseif(strcmp(string,'cosinic')) c = 'c';
@@ -445,9 +445,5 @@ function c = controlStringToCharacter(string, default)
       elseif(strcmp(string,'pencil')) c = 'p';
       else c = default;
       end
-    
+
 end
-    
-    
-
-

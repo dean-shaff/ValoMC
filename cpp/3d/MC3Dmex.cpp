@@ -14,6 +14,8 @@
 #include "MC3D.hpp"
 #include "../versionstring.h"
 
+// #include "MC3D_cuda_bridge.hpp"
+
 #include "matrix.h"
 
 // Compiling (from MATLAB prompt):
@@ -57,7 +59,7 @@ bool Progress_with_bar(double perc){
   time_t now;
   time(&now);
   double timedifference = difftime(now,starting_time);
-  
+
   #ifdef _MAKE_CTRL_C_POSSIBLE_
   if(utIsInterruptPending()) {
       mxDestroyArray(result);
@@ -66,26 +68,26 @@ bool Progress_with_bar(double perc){
   #endif
 
   char matlabstring[5012];
-  
+
   if(timedifference > 0) {
-    
+
     double remainingtime = (100.0-perc)/(perc/timedifference);
     double hours = floor(remainingtime/(60*60));
     double minutes = floor((remainingtime - hours*60*60)/60);
-    double seconds = (remainingtime - hours*60*60 - minutes*60);    
-    
-    sprintf(&matlabstring[0], "waitbar(%f,mcwaitbar,'%i hours %i minutes and %i seconds left');\n", perc / 100.0, (int) hours, (int) minutes, (int) ceil(seconds)); 
+    double seconds = (remainingtime - hours*60*60 - minutes*60);
+
+    sprintf(&matlabstring[0], "waitbar(%f,mcwaitbar,'%i hours %i minutes and %i seconds left');\n", perc / 100.0, (int) hours, (int) minutes, (int) ceil(seconds));
   //  mexPrintf("%s",matlabstring);
   } else {
-     sprintf(&matlabstring[0],  "waitbar(0, mcwaitbar,'Estimating the time left');\n");    
+     sprintf(&matlabstring[0],  "waitbar(0, mcwaitbar,'Estimating the time left');\n");
   }
 
   mexEvalString(matlabstring);
-  
+
   fflush(stdout);
-  
+
   if(result != NULL) mxDestroyArray(result);
-  
+
   return true;
 }
 
@@ -101,14 +103,14 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   char infobuf[5012];
   version_string(infobuf);
   mexPrintf("%s",infobuf);
-  
-  if ((nrhs != 18) || ((nlhs != 5) && (nlhs != 6)))
+
+  if ((nrhs > 19) || ((nlhs != 5) && (nlhs != 6)))
   {
     mexPrintf("nrhs %i nlhs %i", nrhs, nlhs);
-    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed)\n");
+    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed, use_gpu)\n");
   }
   mexPrintf("Initializing MC3D...\n");
-  
+
   // Parse input
   Array<int_fast64_t> H, HN, BH;
   Array<double> r, mua, mus, g, n, phase0;
@@ -118,13 +120,14 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   Array<double> GaussianSigma;
   Array<int_fast64_t> disable_pbar;
   Array<uint_fast64_t> rndseed;
+  bool use_gpu = false;
 
   Convert_mxArray(prhs[0], H);
   Convert_mxArray(prhs[1], HN);
   Convert_mxArray(prhs[2], BH);
   Convert_mxArray(prhs[3], r);
   Convert_mxArray(prhs[4], BCType);
-  Convert_mxArray(prhs[5], BCIntensity);    // [AL]: New array for light source intensity 
+  Convert_mxArray(prhs[5], BCIntensity);    // [AL]: New array for light source intensity
   Convert_mxArray(prhs[6], BCLightDirectionType); // [AL]: New array, determines if lightsource given relative to normal or not
   Convert_mxArray(prhs[7], BCLNormal);
   Convert_mxArray(prhs[8], BCn);
@@ -138,7 +141,18 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   Convert_mxArray(prhs[16], disable_pbar);
   Convert_mxArray(prhs[17], rndseed);
 
-//  Convert_mxArray(prhs[15], GaussianSigma); 
+  if (nrhs == 19) {
+    if (mxIsClass(prhs[18], "logical")) { // means we've passed true/false
+      use_gpu = reinterpret_cast<bool*>(mxGetData(prhs[18]))[0];
+    } else if (mxIsClass(prhs[18], "double")) {
+      use_gpu = static_cast<bool>(reinterpret_cast<double*>(mxGetData(prhs[18]))[0]);
+    } else {
+      mexPrintf("Unrecognized type for `use_gpu` parameter\n");
+    }
+  }
+  mexPrintf("use_gpu %i\n", use_gpu);
+
+//  Convert_mxArray(prhs[15], GaussianSigma);
 
   // Set parameters to MC
   MC3D MC;
@@ -174,11 +188,11 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     MC.ErrorChecks();
     MC.Init();
   } catch(mcerror e) {
-    std::string message = "Error in initializing MC3D: " + std::string(errorstring(e)) + "\n"; 
+    std::string message = "Error in initializing MC3D: " + std::string(errorstring(e)) + "\n";
     mexErrMsgTxt(message.c_str());
     return;
   }
-  
+
   time(&starting_time);
 
   // Compute
@@ -207,7 +221,7 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   // Copy solution from MC to output
   Array<double> vsolr, vsoli, bsolr, bsoli;
   Array<double> dbsolr, dbsoli; // [AL]
-  
+
   Convert_mxArray(&plhs[0], vsolr, vsoli, MC.ER.Nx, MC.ER.Ny);
   Convert_mxArray(&plhs[1], bsolr, bsoli, MC.EBR.Nx, MC.EBR.Ny);
   Convert_mxArray(&plhs[2], dbsolr, dbsoli, MC.DEBR.Nx, MC.DEBR.Ny);

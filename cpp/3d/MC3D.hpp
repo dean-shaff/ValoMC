@@ -1765,7 +1765,7 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
   // Single thread implementation
   long ii;
 
-  long itick = max(1, Nphoton / 100);
+  long itick = max(static_cast<int_fast64_t>(1), Nphoton / 100);
   int percentage = 0;
   long iphoton;
   Photon phot;
