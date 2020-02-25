@@ -985,8 +985,8 @@ void MC3DCUDA::monte_carlo () {
 
   unsigned block_size_monte_carlo = states_size;
   unsigned grid_size_monte_carlo = 1;
-  if (block_size_monte_carlo > 1024) {
-    block_size_monte_carlo = 1024;
+  if (block_size_monte_carlo > 128) {
+    block_size_monte_carlo = 128;
     grid_size_monte_carlo = states_size / block_size_monte_carlo;
   }
 

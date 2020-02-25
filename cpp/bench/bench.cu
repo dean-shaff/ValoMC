@@ -29,8 +29,13 @@ int main (int argc, char *argv[]) {
   mc3d.ErrorChecks();
   mc3d.Init();
 
+  unsigned states_size = nphotons;
+  if (states_size > 1000) {
+    states_size = 1000;
+  }
+
   t0 = now();
-  ValoMC::MC3DCUDA mc3dcuda (mc3d, nphotons);
+  ValoMC::MC3DCUDA mc3dcuda (mc3d, states_size);
   mc3dcuda.allocate();
   mc3dcuda.h2d();
   cudaDeviceSynchronize();
