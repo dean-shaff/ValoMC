@@ -1,11 +1,7 @@
-#include <limits> // std::numeric_limits
-
 #include "MC3D_util.cuh"
 
 namespace ValoMC {
 namespace util {
-
-const double eps = std::numeric_limits<double>::epsilon();
 
 __host__ __device__ void cross (
   double dest[3], double v1[3], double v2[3]
@@ -46,7 +42,7 @@ __host__ __device__ int ray_triangle_intersects (
   util::sub(edge2, V2, V0);
   util::cross(pvec, D, edge2);
   det = util::dot(edge1, pvec);
-  if ((-eps < det) && (det < eps)) {
+  if ((-ValoMC::util::eps < det) && (det < ValoMC::util::eps)) {
     // printf("here det\n");
     return 0;
   }

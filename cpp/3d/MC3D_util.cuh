@@ -34,6 +34,8 @@ static __inline__ __device__ double atomicAdd(double *address, double val) {
 namespace ValoMC {
 namespace util {
 
+  const double eps = std::numeric_limits<double>::epsilon();
+
   struct limit_map {
 
     // 4294967295 as a double

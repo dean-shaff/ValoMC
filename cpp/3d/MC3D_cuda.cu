@@ -6,9 +6,9 @@
 namespace ValoMC {
 
 __global__ void _init_state (MC3DCUDA* mc3d) {
-  const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
-  const unsigned total_size_x = gridDim.x*blockDim.x;
-  const unsigned states_size = mc3d->get_states_size();
+  const int idx = threadIdx.x + blockDim.x*blockIdx.x;
+  const int total_size_x = gridDim.x*blockDim.x;
+  const int states_size = mc3d->get_states_size();
   if (idx > states_size) {
     return;
   }
@@ -18,22 +18,26 @@ __global__ void _init_state (MC3DCUDA* mc3d) {
   //   printf("init_state: seed=%u\n", seed);
   // }
 
-  for (unsigned istate=idx; istate<states_size; istate+=total_size_x) {
+  for (int istate=idx; istate<states_size; istate+=total_size_x) {
     curand_init(seed, idx, 0, &states[istate]);
   }
 }
 
 
 __global__ void _monte_carlo_atomic (MC3DCUDA* mc3d) {
-  const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
-  const unsigned total_size_x = gridDim.x*blockDim.x;
+  if (threadIdx.x % warpSize != 0) {
+    return;
+  }
+  const int warp_idx = threadIdx.x/warpSize;
+  const int idx = warp_idx + blockDim.x*blockIdx.x/warpSize;
+  const int total_size_x = gridDim.x*blockDim.x/warpSize;
 
-  const unsigned states_size = mc3d->get_states_size();
-  const unsigned nphotons = mc3d->get_nphotons();
+  const int states_size = mc3d->get_states_size();
+  const int nphotons = mc3d->get_nphotons();
 
-  const unsigned increment_size = states_size > total_size_x ? states_size: total_size_x;
+  const int increment_size = states_size > total_size_x ? states_size: total_size_x;
 
-  // printf("_monte_carlo_atomic: increment_size=%u\n", increment_size);
+  // printf("_monte_carlo_atomic: increment_size=%u, idx=%u, warpSize=%u\n", increment_size, idx, warpSize);
 
   if (idx > increment_size) {
     return;
@@ -43,7 +47,7 @@ __global__ void _monte_carlo_atomic (MC3DCUDA* mc3d) {
   curandState_t local_state = states[idx];
   Photon photon;
 
-  for (unsigned iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
+  for (int iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
     // if (idx == 0) {
     //   printf("_monte_carlo_atomic: increment_size=%u, iphoton=%u\n", increment_size, iphoton);
     // }
@@ -663,7 +667,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
     thi = acos(-costhi);
   double tht = acos(costht);
   double R;
-  if (!(sin(thi + tht) > eps))
+  if (!(sin(thi + tht) > ValoMC::util::eps))
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
@@ -1053,11 +1057,18 @@ void MC3DCUDA::monte_carlo_atomic () {
     grid_size_init_state++;
   }
 
+  // unsigned block_size_monte_carlo = max_block_size_monte_carlo;
+  // unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
+  // if (grid_size_monte_carlo == 0) {
+  //   grid_size_monte_carlo++;
+  // }
+
   unsigned block_size_monte_carlo = max_block_size_monte_carlo;
-  unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
+  unsigned grid_size_monte_carlo = states_size / (block_size_monte_carlo/32);
   if (grid_size_monte_carlo == 0) {
     grid_size_monte_carlo++;
   }
+
 
   std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
   std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
