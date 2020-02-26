@@ -667,7 +667,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
     thi = acos(-costhi);
   double tht = acos(costht);
   double R;
-  if (!(sin(thi + tht) > ValoMC::util::eps))
+  if (!(sin(thi + tht) > eps))
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
