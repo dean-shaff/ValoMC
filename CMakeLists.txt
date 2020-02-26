@@ -105,7 +105,7 @@ foreach(exe ${standalone_EXECUTABLES})
   target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
 endforeach()
 
-add_subdirectory(cpp/test)
+# add_subdirectory(cpp/test)
 add_subdirectory(cpp/bench)
 
 if (Matlab_FOUND)

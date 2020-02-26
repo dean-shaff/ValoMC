@@ -24,35 +24,33 @@ __global__ void _init_state (MC3DCUDA* mc3d) {
 }
 
 
-__global__ void _monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
+__global__ void _monte_carlo_atomic (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
+
   const unsigned states_size = mc3d->get_states_size();
-  const unsigned increment_size = total_size_x > states_size ? states_size: total_size_x;
+  const unsigned nphotons = mc3d->get_nphotons();
 
-  // if (total_size_x == 1) {
-  //   printf("monte_carlo_atomicAdd\n");
-  // }
+  const unsigned increment_size = states_size > total_size_x ? states_size: total_size_x;
 
+  // printf("_monte_carlo_atomic: increment_size=%u\n", increment_size);
 
   if (idx > increment_size) {
     return;
   }
+
   curandState_t* states = mc3d->get_states();
   curandState_t local_state = states[idx];
   Photon photon;
-  for (unsigned iphoton=idx; iphoton<mc3d->get_nphotons(); iphoton+=increment_size) {
-    // if (total_size_x == 1) {
-    //   printf("monte_carlo_atomicAdd: idx=%u\n", iphoton);
+
+  for (unsigned iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
+    // if (idx == 0) {
+    //   printf("_monte_carlo_atomic: increment_size=%u, iphoton=%u\n", increment_size, iphoton);
     // }
     mc3d->create_photon(&photon, &local_state);
-    mc3d->propagate_photon_atomicAdd(&photon, &local_state);
+    mc3d->propagate_photon_atomic(&photon, &local_state);
   }
 }
-
-
-
-
 
 
 void MC3DCUDA::init () {
@@ -649,7 +647,179 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
   return 0;
 }
 
-__device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_t* state)
+
+__device__ int MC3D::propagate_photon_single_step_atomic (Photon* phot, curandState_t* state)
+{
+  // Check through which face the photon will exit the current element
+  // [DS]
+  if (which_face(phot, &dist) == -1)
+  {
+    // loss++;
+    return;
+  }
+
+  // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
+  ds = fmin(prop, dist);
+
+  // Move photon
+  phot->pos[0] += phot->dir[0] * ds;
+  phot->pos[1] += phot->dir[1] * ds;
+  phot->pos[2] += phot->dir[2] * ds;
+
+  // Upgrade element fluence
+  if (omega <= 0.0)
+  {
+    // Unmodulated light
+    if (mua[phot->curel] > 0.0)
+    {
+      // ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+      // atomicAdd(&ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
+      (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+    }
+    else
+    {
+      // ER[phot->curel] += phot->weight * ds;
+      // atomicAdd(&ER[phot->curel], phot->weight * ds);
+      phot->weight * ds;
+    }
+  }
+  else
+  {
+    // Modulated light
+
+    /*
+  cls;
+
+  syms w0 mua k x ph0 s real;
+
+  % k = 0; ph0 = 0;
+
+  e = w0 * exp(-mua * x - j * (k * x + ph0));
+
+  g = int(e, x, 0, s);
+
+  syms a b real;
+
+  f = (a + i * b) / (mua + i * k);
+
+  % Change of element as photon passes it
+  pretty(simplify( real( g * (mua + i * k) ) ))
+  pretty(simplify( imag( g * (mua + i * k) ) ))
+
+  % Final divider / normalization
+  pretty( simplify( real(f) ) )
+  pretty( simplify( imag(f) ) )
+*/
+
+    // ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+    // EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+    // atomicAdd(&ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+    // atomicAdd(&EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+    phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+    phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+
+    phot->phase += k[phot->curel] * ds;
+  }
+
+  // Upgrade photon weigh
+  phot->weight *= exp(-mua[phot->curel] * ds);
+
+  // Photon has reached a situation where it has to be scattered
+  prop -= ds;
+  if (prop <= 0.0)
+    break;
+
+  // Otherwise the photon will continue to pass through the boundaries of the current element
+
+  // Test for boundary conditions
+  if (phot->nextel < 0)
+  {
+    // Boundary element index
+    ib = -1 - phot->nextel;
+
+    if ((BCType[ib] == 'm') || (BCType[ib] == 'L') || (BCType[ib] == 'I') || (BCType[ib] == 'C'))
+    {
+      // Mirror boundary condition -- Reflect the photon
+      mirror_photon(phot, ib);
+      phot->curface = phot->nextface;
+      continue;
+    }
+    else
+    {
+      // Absorbing (a, l, i and c)
+      // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
+      if (BCn[ib] > 0.0)
+        if (fresnel_photon(phot, state))
+          continue;
+
+      if (omega <= 0.0)
+      {
+        // EBR[ib] += phot->weight;
+        // atomicAdd(&EBR[ib], phot->weight);
+        phot->weight;
+      }
+      else
+      {
+        // EBR[ib] += phot->weight * cos(phot->phase);
+        // EBI[ib] -= phot->weight * sin(phot->phase);
+        // atomicAdd(&EBR[ib], phot->weight * cos(phot->phase));
+        // atomicAdd(&EBI[ib], -phot->weight * sin(phot->phase));
+        phot->weight * cos(phot->phase);
+        -phot->weight * sin(phot->phase);
+
+      }
+      // Photon propagation will terminate
+      return;
+    }
+  }
+
+  // Test transmission from vacuum -> scattering media
+  if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
+  {
+    // Draw new propagation distance -- otherwise photon might travel without scattering
+    prop = -log(ValoMC::util::rand_open<curandState_t, double>(state)) / mus[phot->nextel];
+  }
+
+  // Test for surival of the photon via roulette
+  if (phot->weight < weight0)
+  {
+    if (ValoMC::util::rand_closed<curandState_t, double>(state) > chance)
+      return;
+    phot->weight /= chance;
+  }
+
+  // Fresnel transmission/reflection
+  if (n[phot->curel] != n[phot->nextel])
+  {
+    if (fresnel_photon(phot, state))
+      continue;
+  }
+
+  // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
+  prop *= mus[phot->curel] / mus[phot->nextel];
+
+
+
+  // Update current face of the photon to that face which it will be on in the next element
+  if (HN(phot->nextel, 0) == phot->curel)
+    phot->curface = 0;
+  else if (HN(phot->nextel, 1) == phot->curel)
+    phot->curface = 1;
+  else if (HN(phot->nextel, 2) == phot->curel)
+    phot->curface = 2;
+  else if (HN(phot->nextel, 3) == phot->curel)
+    phot->curface = 3;
+  else
+  {
+    // loss++;
+    return;
+  }
+
+  // Update current element of the photon
+  phot->curel = phot->nextel;
+}
+
+__device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* state)
 {
   double prop, dist, ds;
   int_fast64_t ib;
@@ -688,6 +858,7 @@ __device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_
     prop = -log(ValoMC::util::rand_open<curandState_t, double>(state)) / mus[phot->curel];
 
     // Propagate until the current propagation distance runs out (and a scattering will occur)
+
     while (1)
     {
       // Check through which face the photon will exit the current element
@@ -713,12 +884,14 @@ __device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_
         if (mua[phot->curel] > 0.0)
         {
           // ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
-          atomicAdd(&ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
+          // atomicAdd(&ER[phot->curel], (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight);
+          (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
         }
         else
         {
           // ER[phot->curel] += phot->weight * ds;
-          atomicAdd(&ER[phot->curel], phot->weight * ds);
+          // atomicAdd(&ER[phot->curel], phot->weight * ds);
+          phot->weight * ds;
         }
       }
       else
@@ -751,8 +924,10 @@ __device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_
 
         // ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
         // EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-        atomicAdd(&ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
-        atomicAdd(&EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        // atomicAdd(&ER[phot->curel], phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        // atomicAdd(&EI[phot->curel], phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds)));
+        phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+        phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
 
         phot->phase += k[phot->curel] * ds;
       }
@@ -791,14 +966,17 @@ __device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_
           if (omega <= 0.0)
           {
             // EBR[ib] += phot->weight;
-            atomicAdd(&EBR[ib], phot->weight);
+            // atomicAdd(&EBR[ib], phot->weight);
+            phot->weight;
           }
           else
           {
             // EBR[ib] += phot->weight * cos(phot->phase);
             // EBI[ib] -= phot->weight * sin(phot->phase);
-            atomicAdd(&EBR[ib], phot->weight * cos(phot->phase));
-            atomicAdd(&EBI[ib], -phot->weight * sin(phot->phase));
+            // atomicAdd(&EBR[ib], phot->weight * cos(phot->phase));
+            // atomicAdd(&EBI[ib], -phot->weight * sin(phot->phase));
+            phot->weight * cos(phot->phase);
+            -phot->weight * sin(phot->phase);
 
           }
           // Photon propagation will terminate
@@ -968,7 +1146,6 @@ void MC3DCUDA::h2d () {
   ValoMC::util::reserve(pow_den_boun_imag, mc3d.EBI.N);
 }
 
-
 void MC3DCUDA::d2h () {
   ValoMC::util::d2h(&mc3d.ER, pow_den_vol_real);
   ValoMC::util::d2h(&mc3d.EI, pow_den_vol_imag);
@@ -978,11 +1155,35 @@ void MC3DCUDA::d2h () {
 }
 
 void MC3DCUDA::monte_carlo () {
+  monte_carlo_atomic();
+}
+
+void MC3DCUDA::monte_carlo_atomic () {
+
+  const unsigned max_block_size_init_state = 512;
+  const unsigned max_block_size_monte_carlo = 128;
+  // const unsigned max_block_size_monte_carlo = 16;
+
+  cudaFuncAttributes monte_carlo_atomic_attr;
+  cudaFuncAttributes init_state_attr;
+
+  cudaDeviceProp prop;
+  cudaGetDeviceProperties(&prop, 0);
+  const unsigned max_registers = prop.regsPerBlock;
+
+  gpuErrchk(cudaFuncGetAttributes(&monte_carlo_atomic_attr, _monte_carlo_atomic));
+  gpuErrchk(cudaFuncGetAttributes(&init_state_attr, _init_state));
+
+  std::cerr << "monte_carlo_atomic: max_registers " << max_registers << std::endl;
+  std::cerr << "monte_carlo_atomic: _monte_carlo_atomic max reg " << monte_carlo_atomic_attr.numRegs << std::endl;
+  std::cerr << "monte_carlo_atomic: _init_state max reg " << init_state_attr.numRegs << std::endl;
+
+
   MC3DCUDA* mc3dcuda_d;
   gpuErrchk(cudaMalloc((void**)&mc3dcuda_d, sizeof(MC3DCUDA)));
   gpuErrchk(cudaMemcpy(mc3dcuda_d, this, sizeof(MC3DCUDA), cudaMemcpyHostToDevice));
 
-  unsigned block_size_init_state = 64;
+  unsigned block_size_init_state = max_block_size_init_state;
   unsigned grid_size_init_state = states_size / block_size_init_state;
   if (grid_size_init_state == 0) {
     grid_size_init_state++;
@@ -990,21 +1191,22 @@ void MC3DCUDA::monte_carlo () {
 
   unsigned block_size_monte_carlo = states_size;
   unsigned grid_size_monte_carlo = 1;
-  if (block_size_monte_carlo > 128) {
-    block_size_monte_carlo = 128;
+  if (block_size_monte_carlo > max_block_size_monte_carlo) {
+    block_size_monte_carlo = max_block_size_monte_carlo;
     grid_size_monte_carlo = states_size / block_size_monte_carlo;
   }
 
-  std::cerr << "init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
-  std::cerr << "monte_carlo<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
+  // std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
+  // std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
 
-  init_state<<<grid_size_init_state, block_size_init_state>>>(mc3dcuda_d);
+  _init_state<<<grid_size_init_state, block_size_init_state>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());
-  monte_carlo_atomicAdd<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d);
+  _monte_carlo_atomic<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());
 
   gpuErrchk(cudaFree(mc3dcuda_d));
 }
+
 
 
 unsigned long MC3DCUDA::get_total_memory_usage () {

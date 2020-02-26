@@ -13,8 +13,10 @@ std::chrono::time_point<std::chrono::high_resolution_clock> now () {
 
 int main (int argc, char *argv[]) {
   unsigned nphotons = 1000;
+  unsigned niter = 10;
   if (argc > 1) {
     nphotons = std::stoi(argv[1]);
+    niter = std::stoi(argv[2]);
   }
 
   auto t0 = now();
@@ -30,10 +32,11 @@ int main (int argc, char *argv[]) {
   mc3d.Init();
 
   unsigned states_size = nphotons;
-  if (states_size > 1000) {
-    states_size = 1000;
-  }
-
+  // if (states_size > 1000) {
+  //   states_size = 1000;
+  // }
+  std::cerr << "# of photons " << nphotons << std::endl;
+  std::cerr << "# of states " << states_size << std::endl;
   t0 = now();
   ValoMC::MC3DCUDA mc3dcuda (mc3d, states_size);
   mc3dcuda.allocate();
@@ -44,21 +47,25 @@ int main (int argc, char *argv[]) {
   std::cerr << "Took " << delta_h2d.count() << " s to transfer to GPU" << std::endl;
 
   t0 = now();
-  mc3d.MonteCarlo(
-    [](double perc) -> bool {return true;},
-    [](int csum, int Nphoton) {
-      std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
-    }
-  );
+  for (unsigned iter=0; iter<niter; iter++) {
+    mc3d.MonteCarlo(
+      [](double perc) -> bool {return true;},
+      [](int csum, int Nphoton) {
+        std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
+      }
+    );
+  }
   duration delta_cpu = now() - t0;
 
   t0 = now();
-  mc3dcuda.monte_carlo();
-  cudaDeviceSynchronize();
+  for (unsigned iter=0; iter<niter; iter++) {
+    mc3dcuda.monte_carlo();
+    cudaDeviceSynchronize();
+  }
   duration delta_gpu = now() - t0;
 
-  std::cerr << "CPU version took " << delta_cpu.count() << " s" << std::endl;
-  std::cerr << "GPU version took " << delta_gpu.count() << " s" << std::endl;
+  std::cerr << "CPU version took " << delta_cpu.count() << " s, " << delta_cpu.count() / niter << " s per loop" << std::endl;
+  std::cerr << "GPU version took " << delta_gpu.count() << " s, " << delta_gpu.count() / niter << " s per loop"<< std::endl;
 
   if (delta_gpu > delta_cpu) {
     std::cerr << "CPU version " << delta_gpu.count() / delta_cpu.count() << " times faster" << std::endl;
