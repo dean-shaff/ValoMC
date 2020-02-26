@@ -51,6 +51,8 @@ namespace util {
     // 1.0 / 4294967296.0
     static constexpr double u32_max_p1_inv = 1.0/(static_cast<double>(
       std::numeric_limits<unsigned>::max()) + 1.0);
+
+    static constexpr double eps = std::numeric_limits<double>::epsilon();
   };
 
   __host__ __device__ int ray_triangle_intersects (

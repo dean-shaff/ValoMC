@@ -195,8 +195,8 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 
   time(&starting_time);
   if (use_gpu) {
-    mexPrintf("Computing... \n");
-    ValoMC::monte_carlo(MC, 1000);
+    mexPrintf("Computing (using GPU)... \n");
+    ValoMC::monte_carlo(MC, MC.Nphoton);
   } else {
     // Compute
     if(disable_pbar[0] == 0) {

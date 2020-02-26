@@ -667,7 +667,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
     thi = acos(-costhi);
   double tht = acos(costht);
   double R;
-  if (!(sin(thi + tht) > eps))
+  if (!(sin(thi + tht) > ValoMC::util::limit_map::eps))
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
@@ -704,41 +704,15 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
 __device__ int MC3DCUDA::propagate_photon_single_step_atomic (Photon* phot, curandState_t* state)
 {
   return 0;
-
 }
 
 __device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* state)
 {
-  double prop, dist, ds;
+  double prop;
+  double dist;
+  double ds;
   int_fast64_t ib;
   // Propagate until the photon dies
-
-  // Array<int_fast64_t> H = *topology;
-  // Array<int_fast64_t> HN = *neighborhood;
-  // Array<int_fast64_t> BH = *boundary;
-  //
-  // Array<double> r = *grid_nodes;
-  // Array<int> LightSources = *light_sources;
-  // Array<int> LightSourcesMother = *light_sources_mother;
-  // Array<double> LightSourcesCDF = *light_sources_cdf;
-  //
-  // Array<char> BCLightDirectionType = *BC_light_direction_type;
-  // Array<char> BCType = *BC_type;
-  // Array<double> BCLNormal = *BCL_normal;
-  // Array<double> BCn = *BC_n;
-
-  // Array<double> mua = *absorption;
-  // Array<double> mus = *scattering;
-  // Array<double> g = *scattering_inhom;
-  // Array<double> n = *idx_refrc;
-  // Array<double> k = *wave_number;
-  // Array<double> g2 = *scattering_inhom_2;
-  //
-  // Array<double> ER = *pow_den_vol_real;
-  // Array<double> EI = *pow_den_vol_imag;
-
-  // Array<double> EBR = *pow_den_boun_real;
-  // Array<double> EBI = *pow_den_boun_imag;
 
   while (1)
   {
@@ -825,8 +799,9 @@ __device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* 
 
       // Photon has reached a situation where it has to be scattered
       prop -= ds;
-      if (prop <= 0.0)
+      if (prop <= 0.0) {
         break;
+      }
 
       // Otherwise the photon will continue to pass through the boundaries of the current element
 
@@ -881,21 +856,22 @@ __device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* 
       // Test for surival of the photon via roulette
       if (phot->weight < weight0)
       {
-        if (ValoMC::util::rand_closed<curandState_t, double>(state) > chance)
+        if (ValoMC::util::rand_closed<curandState_t, double>(state) > chance) {
           return;
+        }
         phot->weight /= chance;
       }
 
       // Fresnel transmission/reflection
       if ((*idx_refrc)[phot->curel] != (*idx_refrc)[phot->nextel])
       {
-        if (fresnel_photon(phot, state))
+        if (fresnel_photon(phot, state)) {
           continue;
+        }
       }
 
       // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
       prop *= (*scattering)[phot->curel] / (*scattering)[phot->nextel];
-
 
 
       // Update current face of the photon to that face which it will be on in the next element
@@ -918,8 +894,10 @@ __device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* 
     }
 
     // Scatter photon
-    if ((*scattering)[phot->curel] > 0.0)
+    if ((*scattering)[phot->curel] > 0.0) {
       scatter_photon(phot, state);
+    }
+
   }
 }
 

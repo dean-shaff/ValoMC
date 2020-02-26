@@ -128,12 +128,20 @@ if (Matlab_FOUND)
     createBH3
   )
 
+  matlab_get_mex_suffix(
+    ${Matlab_ROOT_DIR}
+    mex_suffix
+  )
+
   foreach(exe ${matlab_EXECUTABLES})
-    matlab_add_mex(NAME ${exe} OUTPUT_NAME ${exe} SRC ${${exe}_SOURCES})
+    # matlab_add_mex(NAME ${exe} OUTPUT_NAME ${exe} SRC ${${exe}_SOURCES})
+    add_library(${exe} SHARED ${${exe}_SOURCES})
+    set_target_properties(${exe} PROPERTIES SUFFIX ".${mex_suffix}" PREFIX "")
     # can't use PRIVATE/PUBLIC with matlab_add_mex targets
     target_link_libraries(${exe} ${ValoMC_LINK_OPTIONS} ${Matlab_MX_LIBRARY})
+    target_include_directories(${exe} PUBLIC ${Matlab_INCLUDE_DIRS})
     target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
-    target_compile_definitions(${exe} PRIVATE MATLAB_MEXCMD_RELEASE=R2017b)
+    target_compile_definitions(${exe} PRIVATE MATLAB_MEXCMD_RELEASE=R2017b USE_MEX_CMD MATLAB_MEX_FILE)
     if (Matlab_UT_LIBRARY)
       target_link_libraries(${exe} ${Matlab_UT_LIBRARY})
       target_compile_definitions(${exe} PRIVATE _MAKE_CTRL_C_POSSIBLE_)
@@ -141,6 +149,7 @@ if (Matlab_FOUND)
   endforeach()
 
   if (HAVE_CUDA)
+    target_compile_options(MC3Dmex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
     target_link_libraries(MC3Dmex ${mc3d_LINK_LIBRARIES} mc3d)
   endif()
 endif()
