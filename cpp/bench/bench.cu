@@ -18,6 +18,12 @@ int main (int argc, char *argv[]) {
     nphotons = std::stoi(argv[1]);
     niter = std::stoi(argv[2]);
   }
+  unsigned states_size = nphotons;
+  // if (states_size > 1000) {
+  //   states_size = 1000;
+  // }
+  std::cerr << "Using " << nphotons << " photons" << std::endl;
+  std::cerr << "Using " << states_size << " curandState_t states" << std::endl;
 
   auto t0 = now();
   static ValoMC::test::util::TestConfig config;
@@ -31,18 +37,17 @@ int main (int argc, char *argv[]) {
   mc3d.ErrorChecks();
   mc3d.Init();
 
-  unsigned states_size = nphotons;
-  // if (states_size > 1000) {
-  //   states_size = 1000;
-  // }
-  std::cerr << "# of photons " << nphotons << std::endl;
-  std::cerr << "# of states " << states_size << std::endl;
-  t0 = now();
   ValoMC::MC3DCUDA mc3dcuda (mc3d, states_size);
+  std::cerr << "mc3dcuda.get_max_block_size_init_state()=" << mc3dcuda.get_max_block_size_init_state() << std::endl;
+  std::cerr << "mc3dcuda.get_max_block_size_monte_carlo()=" << mc3dcuda.get_max_block_size_monte_carlo() << std::endl;
+
+  t0 = now();
   mc3dcuda.allocate();
   mc3dcuda.h2d();
   cudaDeviceSynchronize();
   duration delta_h2d = now() - t0;
+
+
 
   std::cerr << "Took " << delta_h2d.count() << " s to transfer to GPU" << std::endl;
 

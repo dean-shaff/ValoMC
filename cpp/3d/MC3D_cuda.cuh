@@ -14,7 +14,7 @@ class MC3DCUDA {
 
 public:
 
-  MC3DCUDA (MC3D& _mc3d, unsigned _states_size) : mc3d(_mc3d), states_size(_states_size) {
+  MC3DCUDA (MC3D& _mc3d, unsigned _states_size, unsigned _gpu_device_num=0) : mc3d(_mc3d), states_size(_states_size), gpu_device_num(_gpu_device_num) {
     is_allocated = false;
     init();
   }
@@ -197,7 +197,9 @@ public:
   Array<double>* get_pow_den_boun_imag () {return pow_den_boun_imag;}
   const Array<double>* get_pow_den_boun_imag () const {return pow_den_boun_imag;}
 
-
+  unsigned get_max_block_size_init_state () const { return max_block_size_init_state; }
+  unsigned get_max_block_size_monte_carlo () const { return max_block_size_monte_carlo; }
+  unsigned get_gpu_device_num () const { return gpu_device_num; }
 
 private:
 
@@ -258,6 +260,10 @@ private:
 
   // flag indicating whether `allocate` has been called
   bool is_allocated;
+
+  unsigned max_block_size_init_state;
+  unsigned max_block_size_monte_carlo;
+  unsigned gpu_device_num;
 
 };
 
