@@ -62,7 +62,7 @@ public:
 
   __device__ int fresnel_photon (Photon *phot, curandState_t* state);
 
-  __device__ void propagate_photon (Photon *phot, curandState_t* state);
+  __device__ void propagate_photon_atomicAdd (Photon *phot, curandState_t* state);
 
   // Array<int_fast64_t>* get_topology() { return topology; }
   // void set_topology(Array<int_fast64_t>* _topology) { topology = _topology; }
@@ -122,6 +122,8 @@ public:
    * Do monte carlo simulation
    */
   void monte_carlo ();
+
+  void monte_carlo_atomicAdd ();
 
 
   /**
@@ -257,8 +259,8 @@ private:
 
 };
 
-__global__ void init_state (MC3DCUDA* mc3d);
-__global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d);
+__global__ void _init_state (MC3DCUDA* mc3d);
+__global__ void _monte_carlo_atomicAdd (MC3DCUDA* mc3d);
 
 }
 

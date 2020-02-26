@@ -4,4 +4,6 @@ build-host/
 *.mexa64
 *~
 *.o
+*.so
 cpp/test/MC3Dmex.input.json
+cpp/test/MC3Dmex.input.mat

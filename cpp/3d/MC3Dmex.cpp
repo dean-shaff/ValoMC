@@ -14,7 +14,7 @@
 #include "MC3D.hpp"
 #include "../versionstring.h"
 
-// #include "MC3D_cuda_bridge.hpp"
+#include "MC3D_cuda_bridge.hpp"
 
 #include "matrix.h"
 
@@ -194,23 +194,27 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   }
 
   time(&starting_time);
-
-  // Compute
-  if(disable_pbar[0] == 0) {
-     mexPrintf("Computing... \n");
-    // Create a wait bar
-     mexEvalString("assignin('base','abort_photonMC', false);");
-     mexEvalString("mcwaitbar = waitbar(0,'Please wait..', 'name', 'Running simulation', 'CreateCancelBtn','abort_photonMC=true;');");
-
-     MC.MonteCarlo(Progress_with_bar, finalchecks_destroy_bar);
-     mexPrintf("...done\n");
-     printf("\n"); fflush(stdout);
+  if (use_gpu) {
+    mexPrintf("Computing... \n");
+    ValoMC::monte_carlo(MC, 1000);
   } else {
-     mexPrintf("Computing... \n");
-     MC.MonteCarlo(Progress, finalchecks);
+    // Compute
+    if(disable_pbar[0] == 0) {
+       mexPrintf("Computing... \n");
+      // Create a wait bar
+       mexEvalString("assignin('base','abort_photonMC', false);");
+       mexEvalString("mcwaitbar = waitbar(0,'Please wait..', 'name', 'Running simulation', 'CreateCancelBtn','abort_photonMC=true;');");
 
-     mexPrintf("...done\n");
-     printf("\n"); fflush(stdout);
+       MC.MonteCarlo(Progress_with_bar, finalchecks_destroy_bar);
+       mexPrintf("...done\n");
+       printf("\n"); fflush(stdout);
+    } else {
+       mexPrintf("Computing... \n");
+       MC.MonteCarlo(Progress, finalchecks);
+
+       mexPrintf("...done\n");
+       printf("\n"); fflush(stdout);
+    }
   }
 
   time_t now;

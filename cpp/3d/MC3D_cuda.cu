@@ -5,7 +5,7 @@
 
 namespace ValoMC {
 
-__global__ void init_state (MC3DCUDA* mc3d) {
+__global__ void _init_state (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
   const unsigned states_size = mc3d->get_states_size();
@@ -24,7 +24,7 @@ __global__ void init_state (MC3DCUDA* mc3d) {
 }
 
 
-__global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
+__global__ void _monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
   const unsigned idx = threadIdx.x + blockDim.x*blockIdx.x;
   const unsigned total_size_x = gridDim.x*blockDim.x;
   const unsigned states_size = mc3d->get_states_size();
@@ -46,9 +46,14 @@ __global__ void monte_carlo_atomicAdd (MC3DCUDA* mc3d) {
     //   printf("monte_carlo_atomicAdd: idx=%u\n", iphoton);
     // }
     mc3d->create_photon(&photon, &local_state);
-    mc3d->propagate_photon(&photon, &local_state);
+    mc3d->propagate_photon_atomicAdd(&photon, &local_state);
   }
 }
+
+
+
+
+
 
 void MC3DCUDA::init () {
   omega = mc3d.omega;
@@ -644,7 +649,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
   return 0;
 }
 
-__device__ void MC3DCUDA::propagate_photon (Photon *phot, curandState_t* state)
+__device__ void MC3DCUDA::propagate_photon_atomicAdd (Photon *phot, curandState_t* state)
 {
   double prop, dist, ds;
   int_fast64_t ib;
