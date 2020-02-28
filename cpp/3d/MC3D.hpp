@@ -489,49 +489,42 @@ inline void MC3D::ErrorChecks()
   if (g.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_G;
-    return;
   }
 
   // row size of H and mua are equal
   if (mua.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_MUA;
-    return;
   }
 
   // row size of H and mus are equal
   if (mus.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_MUS;
-    return;
   }
 
   // row size of H and n are equal
   if (n.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_N;
-    return;
   }
 
   // Sanity checks for BCn
   if (!BCn.N)
   {
     throw MISSING_BCN;
-    return;
   }
 
   //row size of BH and BCn are equal
   if (BCn.Nx != BH.Nx)
   {
     throw SIZE_MISMATCH_BCN;
-    return;
   }
 
   //row size of BH and BCType are equal
   if (BCType.Nx != BH.Nx)
   {
     throw SIZE_MISMATCH_BCTYPE;
-    return;
   }
 
   // Make sure a light source exists
@@ -551,7 +544,6 @@ inline void MC3D::ErrorChecks()
     if (BCLNormal.Nx != BH.Nx)
     {
       throw SIZE_MISMATCH_LIGHT_DIRECTION;
-      return;
     }
   }
   if (BCLightDirectionType.N)
@@ -559,7 +551,6 @@ inline void MC3D::ErrorChecks()
     if (BCLightDirectionType.Nx != BH.Nx)
     {
       throw SIZE_MISMATCH_LIGHT_DIRECTION_TYPE;
-      return;
     }
   }
   // H contains an index that cannot be found in r
@@ -571,7 +562,6 @@ inline void MC3D::ErrorChecks()
     if (H[ii] < 0 || H[ii] >= r.Nx)
     {
       throw INCONSISTENT_H;
-      return;
     }
   }
 
@@ -580,7 +570,6 @@ inline void MC3D::ErrorChecks()
     if (BH[ii] < 0 || BH[ii] >= r.Nx)
     {
       throw INCONSISTENT_BH;
-      return;
     }
   }
 }

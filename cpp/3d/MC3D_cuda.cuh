@@ -64,19 +64,7 @@ public:
 
   __device__ void propagate_photon_atomic (Photon *phot, curandState_t* state);
 
-  __device__ int propagate_photon_single_step_atomic (Photon *phot, curandState_t* state);
-
-  // Array<int_fast64_t>* get_topology() { return topology; }
-  // void set_topology(Array<int_fast64_t>* _topology) { topology = _topology; }
-  //
-  // Array<int_fast64_t>* get_neighborhood() { return neighborhood; }
-  // void set_neighborhood (Array<int_fast64_t>* _neighborhood) { neighborhood = _neighborhood; }
-  //
-  // Array<int_fast64_t>* get_boundary() { return boundary; }
-  // void set_boundary (Array<int_fast64_t>* _boundary) { boundary = _boundary; }
-  //
-  // Array<double>* get_grid_nodes () { return grid_nodes; }
-  // void set_grid_nodes (Array<double>* _grid_nodes) { grid_nodes = _grid_nodes; }
+  __device__ int propagate_photon_single_step_atomic (Photon *phot, curandState_t* state, double* prop, double* dist, double* ds, int_fast64_t* ib);
 
   const MC3D& get_mc3d () const { return mc3d; }
   MC3D& get_mc3d () { return mc3d; }
