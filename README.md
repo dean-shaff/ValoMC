@@ -178,7 +178,14 @@ The ValoMC CUDA components can be installed via the compile_vmc_cuda_mex.m scrip
 compile_vmc_cuda_mex
 ```
 
-As building the CUDA components requires a `nvcc` link step, `nvcc` must be available on the system PATH. Moreover, Matlab need be aware of the location of the `nvcc` executable. This may require modifying compile_vmc_cuda_mex.m:
+As building the CUDA components requires a `nvcc` link step, `nvcc` must be available on the system PATH. `nvcc` requires a working C/C++ compiler, so that will have to be available on the system PATH as well. The following is an example of the PATH modifications that might be necessary:
+
+```
+export PATH="$PATH:C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin"
+export PATH="$PATH:C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\bin"
+```
+
+Matlab need be aware of the location of the `nvcc` executable. This may require modifying compile_vmc_cuda_mex.m:
 
 ```
 if ispc
