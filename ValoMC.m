@@ -34,6 +34,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
 %         .photon_count
 %         .disable_progressbar    - true or false
 %         .seed                   - random number generator seed
+%         .use_gpu                - boolean: attempt to use the GPU if true
 %
 %
 % OUTPUT:
@@ -161,6 +162,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
     Nphoton = int64(1e6);
     phase0 = 0;
     disable_pbar = int64(0);
+    use_gpu = false;
 
     % complement with user provided options
     if(exist('vmcoptions')==1)
@@ -178,6 +180,10 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
                 disable_pbar = int64(1);
             end
         end
+        if (isfield(vmcoptions, 'use_gpu'))
+          use_gpu = vmcoptions.use_gpu;
+        end
+
 	if(isfield(vmcoptions, 'seed'))
 	    rnseed(1) = vmcoptions.seed;
 	    rnseed(2) = 1;
@@ -335,14 +341,14 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
             fclose(fp);
             return
         else
-            save('MC3Dmex.input.mat', ...
-                'H', 'HN', 'BH', 'r', 'BCType', 'BCIntensity',...
-                'BCLightDirectionType', 'BCLightDirection', 'BCn',...
-                'mua', 'mus', 'g', 'n', 'f', 'phase0', 'Nphoton',...
-                'disable_pbar', 'rnseed'...
-            );
+            % save('MC3Dmex.input.mat', ...
+            %     'H', 'HN', 'BH', 'r', 'BCType', 'BCIntensity',...
+            %     'BCLightDirectionType', 'BCLightDirection', 'BCn',...
+            %     'mua', 'mus', 'g', 'n', 'f', 'phase0', 'Nphoton',...
+            %     'disable_pbar', 'rnseed'...
+            % );
 
-            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), false);
+            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), use_gpu);
         end
         if(isfield(vmcmedium,'nx') && isfield(vmcmedium,'ny') && isfield(vmcmedium,'nz'))
             % Three dimensional input

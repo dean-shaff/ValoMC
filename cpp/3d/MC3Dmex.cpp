@@ -150,7 +150,7 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
       mexPrintf("Unrecognized type for `use_gpu` parameter\n");
     }
   }
-  mexPrintf("use_gpu %i\n", use_gpu);
+  // mexPrintf("use_gpu %i\n", use_gpu);
 
 //  Convert_mxArray(prhs[15], GaussianSigma);
 
@@ -260,7 +260,9 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   }
 
   if(disable_pbar[0] == 0) {
-    mexEvalString("delete(mcwaitbar);");
+    if (! use_gpu) {
+      mexEvalString("delete(mcwaitbar);");
+    }
   }
   mexPrintf("Done\n");
 }

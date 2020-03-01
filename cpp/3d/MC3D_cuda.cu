@@ -1244,11 +1244,11 @@ void MC3DCUDA::monte_carlo_atomic () {
     grid_size_init_state++;
   }
 
-  // unsigned block_size_monte_carlo = max_block_size_monte_carlo;
-  // unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
-  // if (grid_size_monte_carlo == 0) {
-  //   grid_size_monte_carlo++;
-  // }
+ /* unsigned block_size_monte_carlo = max_block_size_monte_carlo;
+  unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
+  if (grid_size_monte_carlo == 0) {
+    grid_size_monte_carlo++;
+  }*/
 
   unsigned block_size_monte_carlo = max_block_size_monte_carlo;
   unsigned grid_size_monte_carlo = states_size / (block_size_monte_carlo/32);
@@ -1256,9 +1256,8 @@ void MC3DCUDA::monte_carlo_atomic () {
     grid_size_monte_carlo++;
   }
 
-
-  std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
-  std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
+  // std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
+  // std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
 
   _init_state<<<grid_size_init_state, block_size_init_state>>>(mc3dcuda_d);
   gpuErrchk(cudaGetLastError());

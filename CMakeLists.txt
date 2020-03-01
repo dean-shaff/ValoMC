@@ -82,6 +82,7 @@ if (HAVE_CUDA)
   add_library(mc3d SHARED ${mc3d_SOURCES})
   target_include_directories(mc3d PUBLIC ${mc3d_INCLUDE_DIRECTORIES})
   target_link_libraries(mc3d PUBLIC ${mc3d_LINK_LIBRARIES} ${ValoMC_LINK_OPTIONS})
+  set_property(TARGET mc3d PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   target_compile_options(mc3d PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
 
 endif()

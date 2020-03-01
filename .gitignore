@@ -1,9 +1,13 @@
 build/
 build-host/
+out/
 *.mat
 *.mexa64
 *~
+# unix/Mac object files
 *.o
+# Windows object files
+*.obj
 *.so
 cpp/test/MC3Dmex.input.json
 cpp/test/MC3Dmex.input.mat

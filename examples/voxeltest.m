@@ -46,7 +46,7 @@ end
 view(-110,50);
 snapnow;
 hold off;
- 
+
 % Create a finer mesh
 
 x_arr = -2:0.1:2;
@@ -57,9 +57,9 @@ vmcmesh = createGridMesh(x_arr, y_arr, z_arr); % function provided by ValoMC
 vmcmedium = createMedium(vmcmesh);
 
 
-%% Create an anisotropic parameter distribution 
+%% Create an anisotropic parameter distribution
 [X,Y,Z] = meshgrid(x_arr,y_arr,z_arr); % Matlab function
-F = 1.3+cos(X*3).*cos(Y*3).*cos(Z*3)*0.2+0.2; 
+F = 1.3+cos(X*3).*cos(Y*3).*cos(Z*3)*0.2+0.2;
 slice(X, Y, Z, F, 0, 0, 0);
 xlabel('x [mm]');
 ylabel('y [mm]');
@@ -77,7 +77,7 @@ snapnow;
 vmcmedium.scattering_coefficient = 1.0;
 vmcmedium.absorption_coefficient = repmat(F(:),6,1); % repeat six times
 
-vmcmedium.scattering_anisotropy = 0.9;        
+vmcmedium.scattering_anisotropy = 0.9;
 vmcmedium.refractive_index = 1;
 
 vmcboundary = createBoundary(vmcmesh, vmcmedium);   % create a boundary for the mesh
@@ -86,8 +86,9 @@ vmcboundary = createBoundary(vmcmesh, vmcmedium);   % create a boundary for the 
 lightsource = findBoundaries(vmcmesh, 'direction', [0 0 0], [0 0 10], 1);
 vmcboundary.lightsource(lightsource) = {'cosinic'};
 
+vmcoptions = struct('use_gpu', true, 'photon_count', int64(1e6));
 
-solution = ValoMC(vmcmesh, vmcmedium, vmcboundary);
+solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions);
 
 %% Visualize the solution
 
@@ -126,7 +127,7 @@ snapnow;
 % addition to the solution.element_fluence, ValoMC will return
 % solution.grid_fluence, which represents the fluence in each voxel.
 % It is calculated as a sum of the tetrahedrons in a grid
-% cell.  
+% cell.
 
 
 clear vmcmedium;
@@ -134,7 +135,7 @@ clear vmcboundary;
 
 vmcmedium.scattering_coefficient = 1.0;
 vmcmedium.absorption_coefficient = F;  %refractive index is now a three dimensional array
-vmcmedium.scattering_anisotropy = 0.9;        
+vmcmedium.scattering_anisotropy = 0.9;
 vmcmedium.refractive_index = 1;
 
 vmcboundary = createBoundary(vmcmesh, vmcmedium);
@@ -143,7 +144,7 @@ lightsource = findBoundaries(vmcmesh, 'direction', [0 0 0], [0 0 10], 1);
 vmcboundary.lightsource(lightsource) = {'cosinic'};
 
 
-solution = ValoMC(vmcmesh, vmcmedium, vmcboundary);
+solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions);
 
 %% Visualize the solution as a voxel map
 % Since 3D array was used to define the scattering coefficient,
@@ -157,4 +158,3 @@ view(125,25);
 hold
 
 snapnow;
-
