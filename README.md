@@ -42,13 +42,13 @@ The following MATLAB code snippet sets up and runs a Monte Carlo simulation in a
 	vmcmesh = createRectangularMesh(xsize, ysize, dh);
 
 	% Create a light source
-	%    - Set a light source from boundary elements 4 to 7 
-	%    - Photons are launched at a random angle so that all angles have a cosinic distribution 
+	%    - Set a light source from boundary elements 4 to 7
+	%    - Photons are launched at a random angle so that all angles have a cosinic distribution
 	vmcboundary.lightsource(4:7) = {'cosinic'};
- 
+
 	% Give optical parameters
 	%    - Constant optical parameters are set troughout the medium.
-	%    - Alternatively, optical parameters can set be for each element using indexing 
+	%    - Alternatively, optical parameters can set be for each element using indexing
 
 	vmcmedium.absorption_coefficient = 0.01;     % [1/mm]
 	vmcmedium.scattering_coefficient = 1.0;      % [1/mm]
@@ -58,7 +58,7 @@ The following MATLAB code snippet sets up and runs a Monte Carlo simulation in a
 	% Run the Monte Carlo simulation
 	solution = ValoMC(vmcmesh, vmcmedium, vmcboundary);
 
-	% Plot the solution using MATLAB 
+	% Plot the solution using MATLAB
 	patch('Faces',vmcmesh.H,'Vertices',vmcmesh.r,'FaceVertexCData', solution.element_fluence, 'FaceColor', 'flat', 'LineWidth',1.5);
 
 
@@ -81,7 +81,7 @@ Simple installation
 
 where ValoMC/ is the the folder from the zip archive or obtained using git.
 
-3. Type 
+3. Type
 
 ```
 	cd ValoMC
@@ -93,15 +93,15 @@ compiler has been installed and compiles a serial version of the
 code. See below on instructions how to obtain a suitable compiler such
 as GCC and how to compile the parallel version.
 
-You can now run the examples in the examples/ -folder. 
-The next time you use ValoMC, the mex files will be already 
+You can now run the examples in the examples/ -folder.
+The next time you use ValoMC, the mex files will be already
 compiled and you simply need to repeat step 2 to continue using
 ValoMC.
 
 4. Test the installation
 
 Try to run e.g. simpletest.m.
- 
+
 	cd examples
 	simpletest
 
@@ -125,14 +125,14 @@ CMake is a program that can automatize the compilation process. It can
 be obtained [here](https://cmake.org). ValoMC can then be installed
 from command prompt, at 'ValoMC/'
 
-    cmake . 
+    cmake .
     cmake --build .
 
 This will build the external executables as well as the mex files. It
 will try to compile the parallel versions. If problems persist, see
 below how to compile the external executable and the mex files
 manually and how to obtain a suitable compiler. To use CMake with
-a specific compiler, you can use e.g. 
+a specific compiler, you can use e.g.
 
     cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9
     cmake --build .
@@ -144,19 +144,19 @@ The external executable can be used to run ValoMC e.g. on a cluster
 without MATLAB (see example: 'Generating input for the external
 executable'). The source code for the external executables are located
 in 2d/cpp/ and 3d/cpp/. These folders contain Ubuntu makefiles for
-reference. CMake also builds the external executables. The 2D code 
+reference. CMake also builds the external executables. The 2D code
 can be manually built using
 
 	g++ MC2D.cpp -o MC2D.a -O3
 
 The multi-threaded (OpenMP) version can be compiled with
 
-	g++ MC2D.cpp -o MC2D.a -O3 -DUSE_OMP -fopenmp 
-		
+	g++ MC2D.cpp -o MC2D.a -O3 -DUSE_OMP -fopenmp
+
 Generalization to other compilers than GNU ones should be straightforward.
-	
-		
-Multithread (parallel) compilation from MATLAB commmand prompt 
+
+
+Multithread (parallel) compilation from MATLAB commmand prompt
 --------------------------------------------------------------
 
 Linux (gcc): To compile with OpenMP (multithread) support (from MATLAB prompt, at 'ValoMC/'):
@@ -169,6 +169,25 @@ Windows (Visual Studio):
 	mex   -DUSE_OMP cpp/2d/MC2Dmex.cpp COMPFLAGS='\$COMPFLAGS /openmp /O2' CXXFLAGS='\$CXXFLAGS ' LDFLAGS='\$LDFLAGS '
 	mex   -DUSE_OMP cpp/3d/MC3Dmex.cpp COMPFLAGS='\$COMPFLAGS /openmp /O2' CXXFLAGS='\$CXXFLAGS ' LDFLAGS='\$LDFLAGS '
 
+CUDA compilation from MATLAB command prompt
+-------------------------------------------
+
+The ValoMC CUDA components can be installed via the compile_vmc_cuda_mex.m script:
+
+```
+compile_vmc_cuda_mex
+```
+
+As building the CUDA components requires a `nvcc` link step, `nvcc` must be available on the system PATH. Moreover, Matlab need be aware of the location of the `nvcc` executable. This may require modifying compile_vmc_cuda_mex.m:
+
+```
+if ispc
+  % the following line may need to change to point to the location of the
+  % directory containing the nvcc executable.
+  setenv('MW_NVCC_PATH', 'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.0/bin');
+  suffix='obj';
+end
+```
 
 How to obtain a suitable compiler
 =================================
@@ -184,8 +203,8 @@ For example, the TDM gcc compiler can be obtained from this
 
 After installation you can use
 
-	setenv('MW_MINGW64_LOC','C:\TDM-GCC-64'); 
-	mex -setup 
+	setenv('MW_MINGW64_LOC','C:\TDM-GCC-64');
+	mex -setup
 
 to inform MATLAB of the location. Visual Studio can be obtained
 [here]https://visualstudio.microsoft.com/ For Visual Studio, OpenMP
@@ -208,7 +227,7 @@ you can install it by
 
 	sudo apt-get install g++-4.9
 	sudo apt-get install gcc-4.9
-   
+
 and use (from MATLAB prompt, at 'ValoMC/'):
-	
+
 	mex  -v GCC='/usr/bin/gcc-4.9' -DUSE_OMP cpp/2d/MC2Dmex.cpp COMPFLAGS='\$COMPFLAGS -fopenmp' CXXFLAGS='\$CXXFLAGS -fopenmp' LDFLAGS='\$LDFLAGS -fopenmp'
