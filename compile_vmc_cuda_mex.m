@@ -17,14 +17,14 @@ nvcc_cmd_str=sprintf('nvcc -dlink -o %s %s %s %s', ...
   device_link_obj, mc3d_util_obj, mc3d_cuda_obj, mc3d_cuda_bridge_obj);
 
 % build individual object files
-fprintf('Compiling %s\n', mc3d_cuda_obj);
-mexcuda('-c', 'cpp/3d/MC3D_cuda.cu', 'NVCC_FLAGS=-dc');
-fprintf('Compiling %s\n', mc3d_util_obj);
-mexcuda('-c', 'cpp/3d/MC3D_util.cu', 'NVCC_FLAGS=-dc');
-fprintf('Compiling %s\n', mc3d_cuda_bridge_obj);
-mexcuda('-c', 'cpp/3d/MC3D_cuda_bridge.cu', 'NVCC_FLAGS=-dc');
+% fprintf('Compiling %s\n', mc3d_cuda_obj);
+% mexcuda('-c', 'cpp/3d/MC3D_cuda.cu', 'NVCC_FLAGS=-dc');
+% fprintf('Compiling %s\n', mc3d_util_obj);
+% mexcuda('-c', 'cpp/3d/MC3D_util.cu', 'NVCC_FLAGS=-dc');
+% fprintf('Compiling %s\n', mc3d_cuda_bridge_obj);
+% mexcuda('-c', 'cpp/3d/MC3D_cuda_bridge.cu', 'NVCC_FLAGS=-dc');
 fprintf('Compiling %s\n', mc3d_mex_obj);
-mexcuda('-c', 'cpp/3d/MC3Dmex.cpp', 'NVCC_FLAGS=-dc');
+mexcuda('-c', 'cpp/3d/MC3Dmex.cpp', 'NVCC_FLAGS=-dc', '-DHAVE_CUDA');
 
 fprintf('Linking device code\n');
 system(nvcc_cmd_str);

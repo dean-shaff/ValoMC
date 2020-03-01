@@ -14,7 +14,9 @@
 #include "MC3D.hpp"
 #include "../versionstring.h"
 
+#ifdef HAVE_CUDA
 #include "MC3D_cuda_bridge.hpp"
+#endif
 
 #include "matrix.h"
 
@@ -193,10 +195,19 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     return;
   }
 
+#ifndef HAVE_CUDA
+  if (use_gpu) {
+    mexPrintf("CUDA funcitonality not available, defaulting to CPU\n");
+    use_gpu = false;
+  }
+#endif
+
   time(&starting_time);
   if (use_gpu) {
+    #ifdef HAVE_CUDA
     mexPrintf("Computing (using GPU)... \n");
     ValoMC::monte_carlo(MC, MC.Nphoton);
+    #endif
   } else {
     // Compute
     if(disable_pbar[0] == 0) {

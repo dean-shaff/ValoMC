@@ -3,6 +3,7 @@ build-host/
 out/
 *.mat
 *.mexa64
+*.mexw64
 *~
 # unix/Mac object files
 *.o
@@ -11,3 +12,5 @@ out/
 *.so
 cpp/test/MC3Dmex.input.json
 cpp/test/MC3Dmex.input.mat
+.vs/
+CMakeSettings.json
