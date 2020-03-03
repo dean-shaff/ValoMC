@@ -13,9 +13,9 @@ void version_string(char *buf) {
   sprintf(buf+strlen(buf),"  OpenMP disabled, no parallelization\n");
 #endif
 #ifdef HAVE_CUDA
-  sprintf(buf+strlen(buf),"  CUDA enabled                       \n");
+  sprintf(buf+strlen(buf),"  Built with CUDA components         \n");
 #else
-  sprintf(buf+strlen(buf),"  CUDA disabled                      \n");
+  sprintf(buf+strlen(buf),"  Built without CUDA components      \n");
 #endif
 #ifdef USE_OMP
   sprintf(buf+strlen(buf),"  Using %d threads\n", omp_get_max_threads());

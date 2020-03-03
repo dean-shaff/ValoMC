@@ -77,7 +77,6 @@ void MC3DCUDA::init () {
   cudaDeviceProp prop;
   gpuErrchk(cudaGetDeviceProperties(&prop, gpu_device_num));
 
-  const unsigned max_registers = prop.regsPerBlock;
 
   cudaFuncAttributes monte_carlo_atomic_attr;
   cudaFuncAttributes init_state_attr;
@@ -87,6 +86,8 @@ void MC3DCUDA::init () {
 
   max_block_size_init_state = 512;
   max_block_size_monte_carlo = 256;
+
+  // const unsigned max_registers = prop.regsPerBlock;
   // max_block_size_init_state = (max_registers / init_state_attr.numRegs) - 1;
   // if (max_block_size_init_state > prop.maxThreadsPerBlock) {
   //   max_block_size_init_state = prop.maxThreadsPerBlock;
@@ -898,8 +899,6 @@ __device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* 
   int_fast64_t ib;
 
   char BC_type_ib;
-  int_fast64_t neighborhood_next_el;
-
   // int single_step;
   // bool alive = true;
   //

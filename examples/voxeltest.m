@@ -86,7 +86,7 @@ vmcboundary = createBoundary(vmcmesh, vmcmedium);   % create a boundary for the 
 lightsource = findBoundaries(vmcmesh, 'direction', [0 0 0], [0 0 10], 1);
 vmcboundary.lightsource(lightsource) = {'cosinic'};
 
-vmcoptions = struct('use_gpu', true, 'photon_count', int64(1e6));
+vmcoptions = struct('use_gpu', false, 'photon_count', int64(1e6));
 
 solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions);
 
