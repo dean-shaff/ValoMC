@@ -3,12 +3,7 @@
 
 #include "MC3D_cuda.cuh"
 #include "test/util.hpp"
-
-using duration = std::chrono::duration<double, std::ratio<1>>;
-
-std::chrono::time_point<std::chrono::high_resolution_clock> now () {
-  return std::chrono::high_resolution_clock::now();
-}
+#include "util.hpp"
 
 
 int main (int argc, char *argv[]) {
@@ -25,10 +20,10 @@ int main (int argc, char *argv[]) {
   std::cerr << "Using " << nphotons << " photons" << std::endl;
   std::cerr << "Using " << states_size << " curandState_t states" << std::endl;
 
-  auto t0 = now();
+  auto t0 = ValoMC::bench::util::now();
   static ValoMC::test::util::TestConfig config;
   config.init_MC3D_from_json();
-  duration delta_io = now() - t0;
+  ValoMC::bench::util::duration delta_io = ValoMC::bench::util::now() - t0;
   std::cerr << "Took " << delta_io.count() << " s to load data from disk" << std::endl;
 
   MC3D mc3d = config.get_mc3d();
@@ -41,17 +36,17 @@ int main (int argc, char *argv[]) {
   std::cerr << "mc3dcuda.get_max_block_size_init_state()=" << mc3dcuda.get_max_block_size_init_state() << std::endl;
   std::cerr << "mc3dcuda.get_max_block_size_monte_carlo()=" << mc3dcuda.get_max_block_size_monte_carlo() << std::endl;
 
-  t0 = now();
+  t0 = ValoMC::bench::util::now();
   mc3dcuda.allocate();
   mc3dcuda.h2d();
   cudaDeviceSynchronize();
-  duration delta_h2d = now() - t0;
+  ValoMC::bench::util::duration delta_h2d = ValoMC::bench::util::now() - t0;
 
 
 
   std::cerr << "Took " << delta_h2d.count() << " s to transfer to GPU" << std::endl;
 
-  t0 = now();
+  t0 = ValoMC::bench::util::now();
   for (unsigned iter=0; iter<niter; iter++) {
     mc3d.MonteCarlo(
       [](double perc) -> bool {return true;},
@@ -60,14 +55,14 @@ int main (int argc, char *argv[]) {
       }
     );
   }
-  duration delta_cpu = now() - t0;
+  ValoMC::bench::util::duration delta_cpu = ValoMC::bench::util::now() - t0;
 
-  t0 = now();
+  t0 = ValoMC::bench::util::now();
   for (unsigned iter=0; iter<niter; iter++) {
     mc3dcuda.monte_carlo();
     cudaDeviceSynchronize();
   }
-  duration delta_gpu = now() - t0;
+  ValoMC::bench::util::duration delta_gpu = ValoMC::bench::util::now() - t0;
 
   std::cerr << "CPU version took " << delta_cpu.count() << " s, " << delta_cpu.count() / niter << " s per loop" << std::endl;
   std::cerr << "GPU version took " << delta_gpu.count() << " s, " << delta_gpu.count() / niter << " s per loop"<< std::endl;
