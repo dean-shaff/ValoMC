@@ -14,7 +14,7 @@ class MC3DCUDA {
 
 public:
 
-  MC3DCUDA (MC3D& _mc3d, unsigned _states_size, unsigned _gpu_device_num=0) : mc3d(_mc3d), states_size(_states_size), gpu_device_num(_gpu_device_num) {
+  MC3DCUDA (MC3D<double>& _mc3d, unsigned _states_size, unsigned _gpu_device_num=0) : mc3d(_mc3d), states_size(_states_size), gpu_device_num(_gpu_device_num) {
     is_allocated = false;
     init();
   }
@@ -48,27 +48,27 @@ public:
    *                    (V1, V2, V3) respectively
    */
   __host__ __device__ int which_face (
-    Photon* phot,
+    Photon<double>* phot,
     double* dist
   );
 
-  __device__ void create_photon (Photon* phot, curandState_t* state);
+  __device__ void create_photon (Photon<double>* phot, curandState_t* state);
 
-  __device__ void scatter_photon (Photon *phot, curandState_t* state);
+  __device__ void scatter_photon (Photon<double>* phot, curandState_t* state);
 
-  __host__ __device__ void mirror_photon (Photon *phot, int_fast64_t ib);
+  __host__ __device__ void mirror_photon (Photon<double>* phot, int_fast64_t ib);
 
-  __host__ __device__ void mirror_photon (Photon *phot, int_fast64_t el, long f);
+  __host__ __device__ void mirror_photon (Photon<double>* phot, int_fast64_t el, long f);
 
-  __device__ int fresnel_photon (Photon *phot, curandState_t* state);
+  __device__ int fresnel_photon (Photon<double>* phot, curandState_t* state);
 
-  __device__ void propagate_photon_atomic (Photon *phot, curandState_t* state);
+  __device__ void propagate_photon_atomic (Photon<double>* phot, curandState_t* state);
 
-  __device__ int propagate_photon_single_step_atomic (Photon *phot, curandState_t* state, double* prop, double* dist, double* ds, int_fast64_t* ib);
+  __device__ int propagate_photon_single_step_atomic (Photon<double>* phot, curandState_t* state, double* prop, double* dist, double* ds, int_fast64_t* ib);
 
-  const MC3D& get_mc3d () const { return mc3d; }
-  MC3D& get_mc3d () { return mc3d; }
-  void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
+  const MC3D<double>& get_mc3d () const { return mc3d; }
+  MC3D<double>& get_mc3d () { return mc3d; }
+  void set_mc3d (MC3D<double>& _mc3d) { mc3d = _mc3d; }
 
   __host__ __device__ unsigned long get_seed () const { return seed; }
   __host__ __device__ void set_seed (unsigned long _seed) { seed = _seed; mc3d.seed = _seed; };
@@ -220,7 +220,7 @@ private:
   Array<double>* pow_den_boun_imag; // EBI
 
 
-  MC3D mc3d;
+  MC3D<double> mc3d;
 
   // curand states for generating random numbers
   curandState_t* states;

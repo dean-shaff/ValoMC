@@ -10,7 +10,8 @@ namespace ValoMC {
 namespace test {
 namespace util {
 
-void TestConfig::init_MC3D_from_json()
+template<typename T>
+void TestConfig<T>::init_MC3D_from_json()
 {
   if (loaded) {
     return;
@@ -93,6 +94,9 @@ void TestConfig::init_MC3D_from_json()
   }
   loaded = true;
 }
+
+template class TestConfig<float>;
+template class TestConfig<double>;
 
 }
 }

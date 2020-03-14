@@ -45,47 +45,53 @@ T min (T a, T b) {
   return a < b ? a : b;
 }
 
-
-const double eps = std::numeric_limits<double>::epsilon();
+template<typename T=double>
+struct limit_map {
+  static constexpr T eps = std::numeric_limits<T>::epsilon();
+};
 
 // Check if ray and triangle intersect
-int RayTriangleIntersects(double O[3], double D[3], double V0[3], double V1[3], double V2[3], double *t);
+template<typename T=double>
+int RayTriangleIntersects(T O[3], T D[3], T V0[3], T V1[3], T V2[3], T *t);
 
 // Structure to hold information of a photon-packet
-typedef struct _Photon
+template<typename T=double>
+struct Photon
 {
-  double pos[3], dir[3];
+  T pos[3], dir[3];
   int_fast64_t curel, nextel, curface, nextface;
-  double weight;
-  double phase;
-} Photon;
+  T weight;
+  T phase;
+};
 
 // Class for 3D Optical Monte Carlo
+template<typename T=double>
 class MC3D
 {
 public:
-  // Constructor, destructor & Assingment operator
   MC3D();
-  ~MC3D();
+
+  // Nothing need to be done, Arrays will kill themselves when it's time
+  ~MC3D() {}
   MC3D &operator=(const MC3D &ref);
 
   // Random number generation related
   void InitRand();
-  double UnifClosed();   // [0, 1]
-  double UnifOpen();     // ]0 ,1[
-  double UnifHalfDown(); // ]0, 1]
-  double UnifHalfUp();   // [0, 1[
+  T UnifClosed();   // [0, 1]
+  T UnifOpen();     // ]0 ,1[
+  T UnifHalfDown(); // ]0, 1]
+  T UnifHalfUp();   // [0, 1[
 
   // Volume of element el
-  double ElementVolume(int_fast64_t el);
+  T ElementVolume(int_fast64_t el);
   // Area of boundary element ib, or volumetric element el face f
-  double ElementArea(int_fast64_t ib);
-  double ElementArea(int_fast64_t el, long f);
+  T ElementArea(int_fast64_t ib);
+  T ElementArea(int_fast64_t el, long f);
 
   // Normal of boundary element ib -- inward
-  void Normal(int_fast64_t ib, double *normal);
+  void Normal(int_fast64_t ib, T *normal);
   // Normal of face f on element el
-  void Normal(int_fast64_t el, long f, double *normal);
+  void Normal(int_fast64_t el, long f, T *normal);
 
   // Initializes the MC3D after all the problem definition parameters have been given
   // Ie. constructs missing parameters
@@ -99,18 +105,36 @@ public:
 
   // Given position, direction, current element & current face photon is on,
   // will return nonzero if the photon will hit a face in element, and also the distance to the point of intersection
-  int WhichFace(Photon *phot, double *dist);
+  int WhichFace(Photon<T> *phot, T *dist);
 
   // Create, scatter, mirror & propagate a photon
-  void CreatePhoton(Photon *phot);
-  void ScatterPhoton(Photon *phot);
-  void MirrorPhoton(Photon *phot, int_fast64_t ib);
-  void MirrorPhoton(Photon *phot, int_fast64_t el, long f);
-  int FresnelPhoton(Photon *phot);
-  void PropagatePhoton(Photon *phot);
+  void CreatePhoton(Photon<T> *phot);
+  void ScatterPhoton(Photon<T> *phot);
+  void MirrorPhoton(Photon<T> *phot, int_fast64_t ib);
+  void MirrorPhoton(Photon<T> *phot, int_fast64_t el, long f);
+  int FresnelPhoton(Photon<T> *phot);
+  void PropagatePhoton(Photon<T> *phot);
+  int PropagatePhoton_SingleStep(
+    Photon<T>* phot,
+    T* prop,
+    T* dist,
+    T* ds,
+    int_fast64_t* ib);
+
+  void PropagatePhoton_SingleStep_UnmodulatedLight(
+    Photon<T>* phot,
+    T* ds);
+
+  void PropagatePhoton_SingleStep_ModulatedLight (
+    Photon<T>* phot,
+    T* ds);
+
+  int PropagatePhoton_SingleStep_TestBoundary(
+    Photon<T>* phot,
+    int_fast64_t* ib);
 
   // Perform MonteCarlo computation
-  void MonteCarlo(bool (*progress)(double) = NULL, void (*finalchecks)(int, int) = NULL);
+  void MonteCarlo(bool (*progress)(T) = NULL, void (*finalchecks)(int, int) = NULL);
   // [AL] Check if the arrays seem valid
   void ErrorChecks();
 
@@ -121,17 +145,17 @@ public:
 public:
   // Geometry
   Array<int_fast64_t> H, HN, BH; // Topology, Neigbourhood, Boundary
-  Array<double> r;               // Grid nodes
+  Array<T> r;               // Grid nodes
 
   // Material parameters for each Element
-  Array<double> mua, mus, g, n; // Absorption, Scattering & Scattering inhomogeneity, Index of refraction
-  Array<double> k, g2;          // Wave number = omega / c * n, square of g
+  Array<T> mua, mus, g, n; // Absorption, Scattering & Scattering inhomogeneity, Index of refraction
+  Array<T> k, g2;          // Wave number = omega / c * n, square of g
 
   // Boundary definitions for each Boundary triangle
   Array<char> BCType;
-  Array<double> BCLNormal;
-  Array<double> BCn;
-  Array<double> BCIntensity; // [AL] Sets the intensity of the light source
+  Array<T> BCLNormal;
+  Array<T> BCn;
+  Array<T> BCIntensity; // [AL] Sets the intensity of the light source
 
   // BCType   =   a  -  Absorbing boundary condition
   //              m  -  Mirror boundary condition
@@ -151,27 +175,27 @@ public:
   //                          r - Relative to surface
 
   // Frequency and angular frequency of amplitude modulation of the light source
-  double f, omega, phase0; //[AL] phase0
+  T f, omega, phase0; //[AL] phase0
 
   // Number of photons to compute
   int_fast64_t Nphoton;
 
   // Speed of light (mm / ps)
-  double c0;
+  T c0;
 
   // Calculatable parameters
-  Array<double> ER, EI;     // Absorbed power density in the volumetric elements (real & imaginary)
-  Array<double> EBR, EBI;   // Absorbed power density in the boundary elements (real & imaginary)
-  Array<double> DEBR, DEBI; // Absorbed power density in the boundary elements (real & imaginary) weighted by the dot product
+  Array<T> ER, EI;     // Absorbed power density in the volumetric elements (real & imaginary)
+  Array<T> EBR, EBI;   // Absorbed power density in the boundary elements (real & imaginary)
+  Array<T> DEBR, DEBI; // Absorbed power density in the boundary elements (real & imaginary) weighted by the dot product
                             // of the direction of the photon packets and the boundary normal
 
   // Light source likelyhood & creation variables
   Array<int> LightSources;
   Array<int> LightSourcesMother;
-  Array<double> LightSourcesCDF;
+  Array<T> LightSourcesCDF;
 
   // Model parameters
-  double weight0, chance; // Weight when to commence the roulette & the chance of revitalizing the photon
+  T weight0, chance; // Weight when to commence the roulette & the chance of revitalizing the photon
   long loss;              // Number of photons lost
 
   // Thread-safe random number generator
@@ -187,7 +211,8 @@ public:
 };
 
 // Constuctor, set some default values for Monte Carlo
-inline MC3D::MC3D()
+template<typename T>
+MC3D<T>::MC3D()
 {
   c0 = 2.99792458e11;
 
@@ -203,15 +228,13 @@ inline MC3D::MC3D()
   threadcount = nodecount = totalthreads = 1;
 }
 
-// Nothing need to be done, Arrays will kill themselves when it's time
-inline MC3D::~MC3D()
-{
-}
+
 
 // Assingment operator:
 //  This will copy references to geometrical and parametric variables
 //  Only new variables in the left hand side will be ER/EI, EBR/EBI, VER/VEI
-inline MC3D &MC3D::operator=(const MC3D &ref)
+template<typename T>
+MC3D<T>& MC3D<T>::operator=(const MC3D &ref)
 {
   if (this != &ref)
   {
@@ -287,43 +310,49 @@ inline MC3D &MC3D::operator=(const MC3D &ref)
 }
 
 // Initialize random number generator
-inline void MC3D::InitRand()
+template<typename T>
+void MC3D<T>::InitRand()
 {
   rng.Seed(seed);
 }
 
 // Draw random number on [0, 1]
-inline double MC3D::UnifClosed()
+template<typename T>
+T MC3D<T>::UnifClosed()
 {
-  return (rng.drand_closed());
+  return static_cast<T>(rng.drand_closed());
 }
 
 // Draw random number on ]0, 1[
-inline double MC3D::UnifOpen()
+template<typename T>
+T MC3D<T>::UnifOpen()
 {
-  return (rng.drand_open());
+  return static_cast<T>(rng.drand_open());
 }
 
 // Draw random number ]0, 1]
-inline double MC3D::UnifHalfDown()
+template<typename T>
+T MC3D<T>::UnifHalfDown()
 {
-  return (rng.drand_open_down());
+  return static_cast<T>(rng.drand_open_down());
 }
 
 // Draw random number [0, 1[
-inline double MC3D::UnifHalfUp()
+template<typename T>
+T MC3D<T>::UnifHalfUp()
 {
-  return (rng.drand_open_up());
+  return static_cast<T>(rng.drand_open_up());
 }
 
 // Volume of element el
-inline double MC3D::ElementVolume(int_fast64_t el)
+template<typename T>
+T MC3D<T>::ElementVolume(int_fast64_t el)
 {
-  double ax, ay, az;
-  double bx, by, bz;
-  double cx, cy, cz;
-  double dx, dy, dz;
-  double vol;
+  T ax, ay, az;
+  T bx, by, bz;
+  T cx, cy, cz;
+  T dx, dy, dz;
+  T vol;
 
   ax = r(H(el, 0), 0);
   ay = r(H(el, 0), 1);
@@ -346,9 +375,10 @@ inline double MC3D::ElementVolume(int_fast64_t el)
 }
 
 // Area of boundary element ib
-inline double MC3D::ElementArea(int_fast64_t ib)
+template<typename T>
+T MC3D<T>::ElementArea(int_fast64_t ib)
 {
-  double a, b, c, area;
+  T a, b, c, area;
   a = sqrt(pow(r(BH(ib, 1), 0) - r(BH(ib, 0), 0), 2) + pow(r(BH(ib, 1), 1) - r(BH(ib, 0), 1), 2) + pow(r(BH(ib, 1), 2) - r(BH(ib, 0), 2), 2));
   b = sqrt(pow(r(BH(ib, 2), 0) - r(BH(ib, 0), 0), 2) + pow(r(BH(ib, 2), 1) - r(BH(ib, 0), 1), 2) + pow(r(BH(ib, 2), 2) - r(BH(ib, 0), 2), 2));
   c = sqrt(pow(r(BH(ib, 1), 0) - r(BH(ib, 2), 0), 2) + pow(r(BH(ib, 1), 1) - r(BH(ib, 2), 1), 2) + pow(r(BH(ib, 1), 2) - r(BH(ib, 2), 2), 2));
@@ -357,9 +387,10 @@ inline double MC3D::ElementArea(int_fast64_t ib)
 }
 
 // Area of face f of element el
-inline double MC3D::ElementArea(int_fast64_t el, long f)
+template<typename T>
+T MC3D<T>::ElementArea(int_fast64_t el, long f)
 {
-  double a, b, c, area;
+  T a, b, c, area;
   int i0, i1, i2;
   if (f == 0)
   {
@@ -397,9 +428,10 @@ inline double MC3D::ElementArea(int_fast64_t el, long f)
 }
 
 // Normal of boundary element ib
-inline void MC3D::Normal(int_fast64_t ib, double *normal)
+template<typename T>
+void MC3D<T>::Normal(int_fast64_t ib, T *normal)
 {
-  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
+  T x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
 
   // Two edges of the face
   x1 = r(BH(ib, 1), 0) - r(BH(ib, 0), 0);
@@ -419,7 +451,8 @@ inline void MC3D::Normal(int_fast64_t ib, double *normal)
 }
 
 // Normal of face f on element el
-inline void MC3D::Normal(int_fast64_t el, long f, double *normal)
+template<typename T>
+void MC3D<T>::Normal(int_fast64_t el, long f, T *normal)
 {
   int i0, i1, i2;
   if (f == 0)
@@ -452,7 +485,7 @@ inline void MC3D::Normal(int_fast64_t el, long f, double *normal)
     return;
   }
 
-  double x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
+  T x1, y1, z1, x2, y2, z2, nx, ny, nz, norm;
   // Two edges of the face
   x1 = r(H(el, i1), 0) - r(H(el, i0), 0);
   y1 = r(H(el, i1), 1) - r(H(el, i0), 1);
@@ -471,7 +504,8 @@ inline void MC3D::Normal(int_fast64_t el, long f, double *normal)
 }
 
 // Perform errorchecking and throw an error
-inline void MC3D::ErrorChecks()
+template<typename T>
+void MC3D<T>::ErrorChecks()
 {
   /* SANITY CHECKS */
   // Check that
@@ -485,7 +519,7 @@ inline void MC3D::ErrorChecks()
   // row size of BH and BCLightDirectionType are equal
   // H contains an index that cannot be found in r
   // BH contains an index that cannot be found in r
-  // std::cerr << "MC3D::ErrorChecks()" << std::endl;
+  // std::cerr << "MC3D<T>::ErrorChecks()" << std::endl;
   if (g.Nx != H.Nx)
   {
     throw SIZE_MISMATCH_G;
@@ -577,7 +611,8 @@ inline void MC3D::ErrorChecks()
 // Initialize Monte Carlo after geometry & material parameters have been assigned
 // Under MPI also communicates relevant parameters to other computers and initializes
 // mersenne twister with consequetive seed numbers
-inline void MC3D::Init()
+template<typename T>
+void MC3D<T>::Init()
 {
 #ifdef USE_OMP
   threadcount = omp_get_max_threads();
@@ -607,10 +642,10 @@ inline void MC3D::Init()
   DistributeArray(BCType);
   DistributeArray(BCLNormal);
   DistributeArray(BCn);
-  MPI_Bcast(&f, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&f, 1, MPI_T, 0, MPI_COMM_WORLD);
   MPI_Bcast(&Nphoton, 1, MPI_LONG, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&weight0, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&chance, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&weight0, 1, MPI_T, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&chance, 1, MPI_T, 0, MPI_COMM_WORLD);
   Nphoton /= nodecount;
 #endif
 
@@ -676,7 +711,7 @@ inline void MC3D::Init()
   if (BCLNormal.N)
   {
     int ii;
-    double norm;
+    T norm;
     for (ii = 0; ii < BCLNormal.Nx; ii++)
     {
       norm = sqrt(pow(BCLNormal(ii, 0), 2) + pow(BCLNormal(ii, 1), 2) + pow(BCLNormal(ii, 2), 2));
@@ -693,7 +728,7 @@ inline void MC3D::Init()
   }
 
   // [AL] Change BCLNormal coordinates to relative if needed
-  double n[3], e1[3], e2[3], norm, dotprodn, dotprod1;
+  T n[3], e1[3], e2[3], norm, dotprodn, dotprod1;
 
   for (ii = 0; ii < BCLightDirectionType.N; ii++)
   {
@@ -730,9 +765,9 @@ inline void MC3D::Init()
       e2[2] /= norm;
 
       Normal(ii, &n[0]);
-      double old_bclx = BCLNormal(ii, 0);
-      double old_bcly = BCLNormal(ii, 1);
-      double old_bclz = BCLNormal(ii, 2);
+      T old_bclx = BCLNormal(ii, 0);
+      T old_bcly = BCLNormal(ii, 1);
+      T old_bclz = BCLNormal(ii, 2);
       BCLNormal(ii, 0) = old_bclx * e1[0] + old_bcly * e2[0] + old_bclz * n[0];
       BCLNormal(ii, 1) = old_bclx * e1[1] + old_bcly * e2[1] + old_bclz * n[1];
       BCLNormal(ii, 2) = old_bclx * e1[2] + old_bcly * e2[2] + old_bclz * n[2];
@@ -743,7 +778,8 @@ inline void MC3D::Init()
 }
 
 
-inline void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element)
+template<typename T>
+void MC3D<T>::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element)
 {
   for (unsigned int i = 0; i < neighborlist.size(); i++)
   {
@@ -838,14 +874,15 @@ inline void MC3D::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_f
 }
 
 // Build neigbourhood HN for volumetric topology H
-inline void MC3D::BuildNeighbourhoods()
+template<typename T>
+void MC3D<T>::BuildNeighbourhoods()
 {
-  // std::cerr << "MC3D::BuildNeighbourhoods" << std::endl;
+  // std::cerr << "MC3D<T>::BuildNeighbourhoods" << std::endl;
 #define NEW_NHOOD
 #ifdef NEW_NHOOD
   if (HN.N != H.N)
   {
-    // std::cerr << "MC3D::BuildNeighbourhoods: HN.N != H.N" << std::endl;
+    // std::cerr << "MC3D<T>::BuildNeighbourhoods: HN.N != H.N" << std::endl;
     HN.resize(H.Nx, 4);
     std::vector<std::vector<int_fast64_t> > parent;
     parent.resize((int)r.Nx);
@@ -952,7 +989,8 @@ inline void MC3D::BuildNeighbourhoods()
 //   LightSources will contain index to the boundary element in BH acting as lightsource
 //   LightSourcesMother will contain index to volumetric element H for which BH is attached
 //   LightSourcesCDF will be a cumulative/normalized sum of areas of all the lightsources, this will ease randomizing the creation of photons
-inline void MC3D::BuildLightSource()
+template<typename T>
+void MC3D<T>::BuildLightSource()
 {
   int_fast64_t ii, jj, kk, ib, NLightSource;
 
@@ -1016,8 +1054,9 @@ inline void MC3D::BuildLightSource()
 }
 
 // Determine which face a photon will exit a volumetric element from
-//int MC3D::WhichFace(double curpos[3], double dir[3], int el, int face, double *dist){
-inline int MC3D::WhichFace(Photon *phot, double *dist)
+//int MC3D<T>::WhichFace(T curpos[3], T dir[3], int el, int face, T *dist){
+template<typename T>
+int MC3D<T>::WhichFace(Photon<T> *phot, T *dist)
 {
   // phot - photon under test
   // dist - distance the photon can travel before hitting the face
@@ -1026,13 +1065,13 @@ inline int MC3D::WhichFace(Photon *phot, double *dist)
   // -1 if no hit
   // 0, 1, 2 3 for faces formed by (V0, V1, V2), (V0, V1, V3), (V0, V2, V3), (V1, V2, V3) respectively
 
-  double V0[3] = {r(H(phot->curel, 0), 0), r(H(phot->curel, 0), 1), r(H(phot->curel, 0), 2)};
-  double V1[3] = {r(H(phot->curel, 1), 0), r(H(phot->curel, 1), 1), r(H(phot->curel, 1), 2)};
-  double V2[3] = {r(H(phot->curel, 2), 0), r(H(phot->curel, 2), 1), r(H(phot->curel, 2), 2)};
-  double V3[3] = {r(H(phot->curel, 3), 0), r(H(phot->curel, 3), 1), r(H(phot->curel, 3), 2)};
+  T V0[3] = {r(H(phot->curel, 0), 0), r(H(phot->curel, 0), 1), r(H(phot->curel, 0), 2)};
+  T V1[3] = {r(H(phot->curel, 1), 0), r(H(phot->curel, 1), 1), r(H(phot->curel, 1), 2)};
+  T V2[3] = {r(H(phot->curel, 2), 0), r(H(phot->curel, 2), 1), r(H(phot->curel, 2), 2)};
+  T V3[3] = {r(H(phot->curel, 3), 0), r(H(phot->curel, 3), 1), r(H(phot->curel, 3), 2)};
 
   if (phot->curface != 0)
-    if (RayTriangleIntersects(phot->pos, phot->dir, V0, V1, V2, dist))
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V2, dist))
       if (*dist > 0.0)
       {
         phot->nextface = 0;
@@ -1041,7 +1080,7 @@ inline int MC3D::WhichFace(Photon *phot, double *dist)
       }
 
   if (phot->curface != 1)
-    if (RayTriangleIntersects(phot->pos, phot->dir, V0, V1, V3, dist))
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V3, dist))
       if (*dist > 0.0)
       {
         phot->nextface = 1;
@@ -1050,7 +1089,7 @@ inline int MC3D::WhichFace(Photon *phot, double *dist)
       }
 
   if (phot->curface != 2)
-    if (RayTriangleIntersects(phot->pos, phot->dir, V0, V2, V3, dist))
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V2, V3, dist))
       if (*dist > 0.0)
       {
         phot->nextface = 2;
@@ -1059,7 +1098,7 @@ inline int MC3D::WhichFace(Photon *phot, double *dist)
       }
 
   if (phot->curface != 3)
-    if (RayTriangleIntersects(phot->pos, phot->dir, V1, V2, V3, dist))
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V1, V2, V3, dist))
       if (*dist > 0.0)
       {
         phot->nextface = 3;
@@ -1071,11 +1110,12 @@ inline int MC3D::WhichFace(Photon *phot, double *dist)
 }
 
 // Create a new photon based on LightSources, LightSourcesMother and LighSourcesCDF
-inline void MC3D::CreatePhoton(Photon *phot)
+template<typename T>
+void MC3D<T>::CreatePhoton(Photon<T> *phot)
 {
-  double xi = UnifClosed();
+  T xi = UnifClosed();
 
-  double n[3], t[3], norm;
+  T n[3], t[3], norm;
 
   // Find boundary element index that will create this photon
   int ib;
@@ -1098,7 +1138,7 @@ inline void MC3D::CreatePhoton(Photon *phot)
     phot->curface = -1;
 
   // Initial photon position uniformly distributed on the boundary element
-  double w0 = UnifOpen(), w1 = UnifOpen(), w2 = UnifOpen();
+  T w0 = UnifOpen(), w1 = UnifOpen(), w2 = UnifOpen();
   phot->pos[0] = (w0 * r(BH(ib, 0), 0) + w1 * r(BH(ib, 1), 0) + w2 * r(BH(ib, 2), 0)) / (w0 + w1 + w2);
   phot->pos[1] = (w0 * r(BH(ib, 0), 1) + w1 * r(BH(ib, 1), 1) + w2 * r(BH(ib, 2), 1)) / (w0 + w1 + w2);
   phot->pos[2] = (w0 * r(BH(ib, 0), 2) + w1 * r(BH(ib, 1), 2) + w2 * r(BH(ib, 2), 2)) / (w0 + w1 + w2);
@@ -1140,7 +1180,7 @@ inline void MC3D::CreatePhoton(Photon *phot)
     {
       // Isotropic -- Photons initial direction probality density is uniform on a sphere
       // Wolfram Mathworld / Sphere Point Picking
-      double dot, r[3], theta, u;
+      T dot, r[3], theta, u;
       do
       {
         theta = 2.0 * M_PI * UnifHalfUp();
@@ -1157,8 +1197,8 @@ inline void MC3D::CreatePhoton(Photon *phot)
     else if ((BCType[ib] == 'c') || (BCType[ib] == 'C'))
     {
       // Cosinic -- Directivity follows cosine pattern
-      double phi, theta, dotprodn, dotprod1;
-      double f[3], e1[3], e2[3];
+      T phi, theta, dotprodn, dotprod1;
+      T f[3], e1[3], e2[3];
       // Two edges of the face
       e1[0] = r(BH(ib, 1), 0) - r(BH(ib, 0), 0);
       e1[1] = r(BH(ib, 1), 1) - r(BH(ib, 0), 1);
@@ -1235,7 +1275,7 @@ inline void MC3D::CreatePhoton(Photon *phot)
     {
       // Isotropic -- Photons initial direction probality density is uniform on a sphere
       // Wolfram Mathworld / Sphere Point Picking
-      double dot, r[3], theta, u;
+      T dot, r[3], theta, u;
       do
       {
         theta = 2.0 * M_PI * UnifHalfUp();
@@ -1252,8 +1292,8 @@ inline void MC3D::CreatePhoton(Photon *phot)
     else if ((BCType[ib] == 'c') || (BCType[ib] == 'C'))
     {
       // Cosinic -- Directivity follows cosine pattern
-      double phi, theta, dotprodn, dotprod1;
-      double f[3], e1[3], e2[3];
+      T phi, theta, dotprodn, dotprod1;
+      T f[3], e1[3], e2[3];
       // Two edges of the face
       e1[0] = r(BH(ib, 1), 0) - r(BH(ib, 0), 0);
       e1[1] = r(BH(ib, 1), 1) - r(BH(ib, 0), 1);
@@ -1309,10 +1349,11 @@ inline void MC3D::CreatePhoton(Photon *phot)
 }
 
 // Scatter a photon
-inline void MC3D::ScatterPhoton(Photon *phot)
+template<typename T>
+void MC3D<T>::ScatterPhoton(Photon<T> *phot)
 {
-  double xi, theta, phi;
-  double dxn, dyn, dzn;
+  T xi, theta, phi;
+  T dxn, dyn, dzn;
 
   // Henye-Greenstein scattering
   if (g[phot->curel] != 0.0)
@@ -1341,7 +1382,7 @@ inline void MC3D::ScatterPhoton(Photon *phot)
     dzn = -sin(theta) * cos(phi) * sqrt(1.0 - phot->dir[2] * phot->dir[2]) + phot->dir[2] * cos(theta);
   }
 
-  double norm = sqrt(dxn * dxn + dyn * dyn + dzn * dzn);
+  T norm = sqrt(dxn * dxn + dyn * dyn + dzn * dzn);
   dxn /= norm;
   dyn /= norm;
   dzn /= norm;
@@ -1355,9 +1396,10 @@ inline void MC3D::ScatterPhoton(Photon *phot)
 }
 
 // Mirror photons propagation with respect to boundary element ib
-inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t ib)
+template<typename T>
+void MC3D<T>::MirrorPhoton(Photon<T> *phot, int_fast64_t ib)
 {
-  double n[3], cdot;
+  T n[3], cdot;
   Normal(ib, n);
   cdot = n[0] * phot->dir[0] + n[1] * phot->dir[1] + n[2] * phot->dir[2];
   phot->dir[0] -= 2.0 * cdot * n[0];
@@ -1366,9 +1408,10 @@ inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t ib)
 }
 
 // Mirror photon with respect to face f of element el
-inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t el, long f)
+template<typename T>
+void MC3D<T>::MirrorPhoton(Photon<T> *phot, int_fast64_t el, long f)
 {
-  double n[3], cdot;
+  T n[3], cdot;
   Normal(el, f, n);
   cdot = n[0] * phot->dir[0] + n[1] * phot->dir[1] + n[2] * phot->dir[2];
   phot->dir[0] -= 2.0 * cdot * n[0];
@@ -1377,12 +1420,13 @@ inline void MC3D::MirrorPhoton(Photon *phot, int_fast64_t el, long f)
 }
 
 // Fresnel transmission / reflection of a photon
-inline int MC3D::FresnelPhoton(Photon *phot)
+template<typename T>
+int MC3D<T>::FresnelPhoton(Photon<T> *phot)
 {
   // Likelyhood of reflection:
   //   R = 0.5 ( sin^2(theta_i - theta_t) / sin^2(theta_i + theta_t) + tan^2(theta_i - theta_t) / tan^2(theta_i + theta_t))
   //
-  // For theta_i + theta_t < eps:
+  // For theta_i + theta_t < limit_map<T>::eps:
   //   R = ( (ni / nt - 1) / (ni / nt + 1) )^2
   // which is the limit as theta_i -> 0
   //
@@ -1397,17 +1441,17 @@ inline int MC3D::FresnelPhoton(Photon *phot)
   //   end;
 
   // Normal of the tranmitting face
-  double nor[3];
+  T nor[3];
   Normal((int)phot->curel, (int)phot->nextface, nor);
 
-  double nipnt;
+  T nipnt;
   // Check special case where the photon escapes through the boundary
   if (phot->nextel < 0)
     nipnt = n[phot->curel] / BCn[-1 - phot->nextel];
   else
     nipnt = n[phot->curel] / n[phot->nextel];
 
-  double costhi = -(phot->dir[0] * nor[0] + phot->dir[1] * nor[1] + phot->dir[2] * nor[2]);
+  T costhi = -(phot->dir[0] * nor[0] + phot->dir[1] * nor[1] + phot->dir[2] * nor[2]);
 
   if (1.0 - pow(nipnt, 2) * (1.0 - pow(costhi, 2)) <= 0.0)
   {
@@ -1419,20 +1463,20 @@ inline int MC3D::FresnelPhoton(Photon *phot)
     return (1);
   }
 
-  double costht = sqrt(1.0 - pow(nipnt, 2) * (1.0 - pow(costhi, 2)));
+  T costht = sqrt(1.0 - pow(nipnt, 2) * (1.0 - pow(costhi, 2)));
 
-  double thi;
+  T thi;
   if (costhi > 0.0)
     thi = acos(costhi);
   else
     thi = acos(-costhi);
-  double tht = acos(costht);
-  double R;
-  if (!(sin(thi + tht) > eps))
+  T tht = acos(costht);
+  T R;
+  if (!(sin(thi + tht) > limit_map<T>::eps))
     R = pow((nipnt - 1.0) / (nipnt + 1.0), 2);
   else
     R = 0.5 * (pow(sin(thi - tht) / sin(thi + tht), 2) + pow(tan(thi - tht) / tan(thi + tht), 2));
-  double xi = UnifClosed();
+  T xi = UnifClosed();
 
   if (xi <= R)
   {
@@ -1461,191 +1505,407 @@ inline int MC3D::FresnelPhoton(Photon *phot)
   return (0);
 }
 
-// Propagate a photon until it dies
-inline void MC3D::PropagatePhoton(Photon *phot)
+template<typename T>
+void MC3D<T>::PropagatePhoton_SingleStep_UnmodulatedLight(
+  Photon<T>* phot,
+  T* ds
+)
 {
-  double prop, dist, ds;
-  int_fast64_t ib;
-  // Propagate until the photon dies
-
-  while (1)
-  {
-    // Draw the propagation distance
-    prop = -log(UnifOpen()) / mus[phot->curel];
-
-    // Propagate until the current propagation distance runs out (and a scattering will occur)
-    while (1)
-    {
-      // Check through which face the photon will exit the current element
-      if (WhichFace(phot, &dist) == -1)
-      {
-        loss++;
-        return;
-      }
-
-      // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
-      ds = fmin(prop, dist);
-
-      // Move photon
-      phot->pos[0] += phot->dir[0] * ds;
-      phot->pos[1] += phot->dir[1] * ds;
-      phot->pos[2] += phot->dir[2] * ds;
-
-      // Upgrade element fluence
-      if (omega <= 0.0)
-      {
-        // Unmodulated light
-        if (mua[phot->curel] > 0.0)
-        {
-          ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
-        }
-        else
-        {
-          ER[phot->curel] += phot->weight * ds;
-        }
-      }
-      else
-      {
-        // Modulated light
-
-        /*
- 	    cls;
-
-	    syms w0 mua k x ph0 s real;
-
-	    % k = 0; ph0 = 0;
-
-	    e = w0 * exp(-mua * x - j * (k * x + ph0));
-
-	    g = int(e, x, 0, s);
-
-	    syms a b real;
-
-	    f = (a + i * b) / (mua + i * k);
-
-	    % Change of element as photon passes it
-	    pretty(simplify( real( g * (mua + i * k) ) ))
-	    pretty(simplify( imag( g * (mua + i * k) ) ))
-
-	    % Final divider / normalization
-	    pretty( simplify( real(f) ) )
-	    pretty( simplify( imag(f) ) )
-	*/
-
-        ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-        EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-
-        phot->phase += k[phot->curel] * ds;
-      }
-
-      // Upgrade photon weigh
-      phot->weight *= exp(-mua[phot->curel] * ds);
-
-      // Photon has reached a situation where it has to be scattered
-      prop -= ds;
-      if (prop <= 0.0)
-        break;
-
-      // Otherwise the photon will continue to pass through the boundaries of the current element
-
-      // Test for boundary conditions
-      if (phot->nextel < 0)
-      {
-        // Boundary element index
-        ib = -1 - phot->nextel;
-
-        if ((BCType[ib] == 'm') || (BCType[ib] == 'L') || (BCType[ib] == 'I') || (BCType[ib] == 'C'))
-        {
-          // Mirror boundary condition -- Reflect the photon
-          MirrorPhoton(phot, ib);
-          phot->curface = phot->nextface;
-          continue;
-        }
-        else
-        {
-          // Absorbing (a, l, i and c)
-          // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
-          if (BCn[ib] > 0.0)
-            if (FresnelPhoton(phot))
-              continue;
-
-          if (omega <= 0.0)
-          {
-            EBR[ib] += phot->weight;
-          }
-          else
-          {
-            EBR[ib] += phot->weight * cos(phot->phase);
-            EBI[ib] -= phot->weight * sin(phot->phase);
-          }
-          // Photon propagation will terminate
-          return;
-        }
-      }
-
-      // Test transmission from vacuum -> scattering media
-      if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
-      {
-        // Draw new propagation distance -- otherwise photon might travel without scattering
-        prop = -log(UnifOpen()) / mus[phot->nextel];
-      }
-
-      // Test for surival of the photon via roulette
-      if (phot->weight < weight0)
-      {
-        if (UnifClosed() > chance)
-          return;
-        phot->weight /= chance;
-      }
-
-      // Fresnel transmission/reflection
-      if (n[phot->curel] != n[phot->nextel])
-      {
-        if (FresnelPhoton(phot))
-          continue;
-      }
-
-      // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
-      prop *= mus[phot->curel] / mus[phot->nextel];
-
-
-
-      // Update current face of the photon to that face which it will be on in the next element
-      if (HN(phot->nextel, 0) == phot->curel)
-        phot->curface = 0;
-      else if (HN(phot->nextel, 1) == phot->curel)
-        phot->curface = 1;
-      else if (HN(phot->nextel, 2) == phot->curel)
-        phot->curface = 2;
-      else if (HN(phot->nextel, 3) == phot->curel)
-        phot->curface = 3;
-      else
-      {
-        loss++;
-        return;
-      }
-
-      // Update current element of the photon
-      phot->curel = phot->nextel;
-    }
-
-    // Scatter photon
-    if (mus[phot->curel] > 0.0)
-      ScatterPhoton(phot);
+  if (mua[phot->curel] > 0.0) {
+    ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * (*ds))) * phot->weight;
+  } else {
+    ER[phot->curel] += phot->weight * (*ds);
   }
 }
 
+template<typename T>
+void MC3D<T>::PropagatePhoton_SingleStep_ModulatedLight (
+  Photon<T>* phot,
+  T* ds
+)
+{
+
+      /*
+    cls;
+
+    syms w0 mua k x ph0 s real;
+
+    % k = 0; ph0 = 0;
+
+    e = w0 * exp(-mua * x - j * (k * x + ph0));
+
+    g = int(e, x, 0, s);
+
+    syms a b real;
+
+    f = (a + i * b) / (mua + i * k);
+
+    % Change of element as photon passes it
+    pretty(simplify( real( g * (mua + i * k) ) ))
+    pretty(simplify( imag( g * (mua + i * k) ) ))
+
+    % Final divider / normalization
+    pretty( simplify( real(f) ) )
+    pretty( simplify( imag(f) ) )
+  */
+
+  ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * (*ds)) * exp(-mua[phot->curel] * (*ds)));
+  EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * (*ds)) * exp(-mua[phot->curel] * (*ds)));
+
+  phot->phase += k[phot->curel] * (*ds);
+
+}
+
+template<typename T>
+int MC3D<T>::PropagatePhoton_SingleStep_TestBoundary(
+  Photon<T>* phot,
+  int_fast64_t* ib
+)
+{
+  // Boundary element index
+  *ib = -1 - phot->nextel;
+  char BCType_ib = BCType[*ib];
+  if ((BCType_ib == 'm') || (BCType_ib == 'L') || (BCType_ib == 'I') || (BCType_ib == 'C')) {
+    // Mirror boundary condition -- Reflect the photon
+    MirrorPhoton(phot, *ib);
+    phot->curface = phot->nextface;
+    return 2;
+  } else {
+    // Absorbing (a, l, i and c)
+    // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
+    if (BCn[(*ib)] > 0.0) {
+      if (FresnelPhoton(phot)) {
+        return 2;
+      }
+    }
+
+    if (omega <= 0.0) {
+      EBR[(*ib)] += phot->weight;
+    } else {
+      EBR[(*ib)] += phot->weight * cos(phot->phase);
+      EBI[(*ib)] -= phot->weight * sin(phot->phase);
+    }
+    // Photon propagation will terminate
+    return 0;
+  }
+}
+
+/**
+ * Return 0 for dead photon, 1 if it needs to be scattered, 2 if propagation continues
+ * @param phot   [description]
+ * @param [name] [description]
+ */
+template<typename T>
+int MC3D<T>::PropagatePhoton_SingleStep(
+  Photon<T>* phot,
+  T* prop,
+  T* dist,
+  T* ds,
+  int_fast64_t* ib
+)
+{
+  // Check through which face the photon will exit the current element
+  if (WhichFace(phot, dist) == -1)
+  {
+    return 0;
+  }
+
+  // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
+  *ds = fmin(*prop, *dist);
+
+  // Move photon
+  phot->pos[0] += phot->dir[0] * (*ds);
+  phot->pos[1] += phot->dir[1] * (*ds);
+  phot->pos[2] += phot->dir[2] * (*ds);
+
+  // Upgrade element fluence
+  if (omega <= 0.0) {
+    // Unmodulated light
+    PropagatePhoton_SingleStep_UnmodulatedLight(phot, ds);
+  } else {
+    // Modulated light
+    PropagatePhoton_SingleStep_ModulatedLight(phot, ds);
+  }
+
+  // Upgrade photon weight
+  phot->weight *= exp(-mua[phot->curel] * (*ds));
+
+  // Photon has reached a situation where it has to be scattered
+  *prop -= *ds;
+  if (*prop <= 0.0) {
+    return 1;
+  }
+
+  // Otherwise the photon will continue to pass through the boundaries of the current element
+
+  // Test for boundary conditions
+  if (phot->nextel < 0) {
+    PropagatePhoton_SingleStep_TestBoundary(phot, ib);
+  }
+
+  // Test transmission from vacuum -> scattering media
+  if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
+  {
+    // Draw new propagation distance -- otherwise photon might travel without scattering
+    *prop = -log(UnifOpen()) / mus[phot->nextel];
+  }
+
+  // Test for surival of the photon via roulette
+  if (phot->weight < weight0)
+  {
+    if (UnifClosed() > chance) {
+      return 0;
+    }
+    phot->weight /= chance;
+  }
+
+  // Fresnel transmission/reflection
+  if (n[phot->curel] != n[phot->nextel])
+  {
+    if (FresnelPhoton(phot)) {
+      return 2;
+    }
+  }
+
+  // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
+  *prop *= mus[phot->curel] / mus[phot->nextel];
+
+
+
+  // Update current face of the photon to that face which it will be on in the next element
+  if (HN(phot->nextel, 0) == phot->curel) {
+    phot->curface = 0;
+  } else if (HN(phot->nextel, 1) == phot->curel) {
+    phot->curface = 1;
+  } else if (HN(phot->nextel, 2) == phot->curel) {
+    phot->curface = 2;
+  } else if (HN(phot->nextel, 3) == phot->curel) {
+    phot->curface = 3;
+  } else {
+    return 0;
+  }
+
+  // Update current element of the photon
+  phot->curel = phot->nextel;
+  return 2;
+}
+
+
+
+
+// Propagate a photon until it dies
+template<typename T>
+void MC3D<T>::PropagatePhoton(Photon<T> *phot)
+{
+  T prop, dist, ds;
+  int_fast64_t ib;
+  int single_step_res;
+
+  prop = -log(UnifOpen()) / mus[phot->curel];
+
+  bool alive = true;
+
+  while (alive)
+  {
+    // Draw the propagation distance
+    single_step_res = PropagatePhoton_SingleStep(phot, &prop, &dist, &ds, &ib);
+
+    if (single_step_res == 0) {
+      loss++;
+      alive = false;
+    } else if (single_step_res == 1) {
+      if (mus[phot->curel] > 0.0) {
+        ScatterPhoton(phot);
+      }
+      prop = -log(UnifOpen()) / mus[phot->curel];
+    }
+  }
+
+
+
+  // T prop, dist, ds;
+  // int_fast64_t ib;
+  // // Propagate until the photon dies
+  // while (1)
+  // {
+  //   // Draw the propagation distance
+  //   prop = -log(UnifOpen()) / mus[phot->curel];
+  //
+  //   // Propagate until the current propagation distance runs out (and a scattering will occur)
+  //   while (1)
+  //   {
+  //     // Check through which face the photon will exit the current element
+  //     if (WhichFace(phot, &dist) == -1)
+  //     {
+  //       loss++;
+  //       return;
+  //     }
+  //
+  //     // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
+  //     ds = fmin(prop, dist);
+  //
+  //     // Move photon
+  //     phot->pos[0] += phot->dir[0] * ds;
+  //     phot->pos[1] += phot->dir[1] * ds;
+  //     phot->pos[2] += phot->dir[2] * ds;
+  //
+  //     // Upgrade element fluence
+  //     if (omega <= 0.0)
+  //     {
+  //       // Unmodulated light
+  //       if (mua[phot->curel] > 0.0)
+  //       {
+  //         ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+  //       }
+  //       else
+  //       {
+  //         ER[phot->curel] += phot->weight * ds;
+  //       }
+  //     }
+  //     else
+  //     {
+  //       // Modulated light
+  //
+  //       /*
+ 	//     cls;
+  //
+	//     syms w0 mua k x ph0 s real;
+  //
+	//     % k = 0; ph0 = 0;
+  //
+	//     e = w0 * exp(-mua * x - j * (k * x + ph0));
+  //
+	//     g = int(e, x, 0, s);
+  //
+	//     syms a b real;
+  //
+	//     f = (a + i * b) / (mua + i * k);
+  //
+	//     % Change of element as photon passes it
+	//     pretty(simplify( real( g * (mua + i * k) ) ))
+	//     pretty(simplify( imag( g * (mua + i * k) ) ))
+  //
+	//     % Final divider / normalization
+	//     pretty( simplify( real(f) ) )
+	//     pretty( simplify( imag(f) ) )
+	// */
+  //
+  //       ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+  //       EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+  //
+  //       phot->phase += k[phot->curel] * ds;
+  //     }
+  //
+  //     // Upgrade photon weight
+  //     phot->weight *= exp(-mua[phot->curel] * ds);
+  //
+  //     // Photon has reached a situation where it has to be scattered
+  //     prop -= ds;
+  //     if (prop <= 0.0)
+  //       break;
+  //
+  //     // Otherwise the photon will continue to pass through the boundaries of the current element
+  //
+  //     // Test for boundary conditions
+  //     if (phot->nextel < 0)
+  //     {
+  //       // Boundary element index
+  //       ib = -1 - phot->nextel;
+  //       char BCType_ib = BCType[ib];
+  //       if ((BCType_ib == 'm') || (BCType_ib == 'L') || (BCType_ib == 'I') || (BCType_ib == 'C'))
+  //       {
+  //         // Mirror boundary condition -- Reflect the photon
+  //         MirrorPhoton(phot, ib);
+  //         phot->curface = phot->nextface;
+  //         continue;
+  //       }
+  //       else
+  //       {
+  //         // Absorbing (a, l, i and c)
+  //         // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
+  //         if (BCn[ib] > 0.0)
+  //           if (FresnelPhoton(phot))
+  //             continue;
+  //
+  //         if (omega <= 0.0)
+  //         {
+  //           EBR[ib] += phot->weight;
+  //         }
+  //         else
+  //         {
+  //           EBR[ib] += phot->weight * cos(phot->phase);
+  //           EBI[ib] -= phot->weight * sin(phot->phase);
+  //         }
+  //         // Photon propagation will terminate
+  //         return;
+  //       }
+  //     }
+  //
+  //     // Test transmission from vacuum -> scattering media
+  //     if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
+  //     {
+  //       // Draw new propagation distance -- otherwise photon might travel without scattering
+  //       prop = -log(UnifOpen()) / mus[phot->nextel];
+  //     }
+  //
+  //     // Test for surival of the photon via roulette
+  //     if (phot->weight < weight0)
+  //     {
+  //       if (UnifClosed() > chance)
+  //         return;
+  //       phot->weight /= chance;
+  //     }
+  //
+  //     // Fresnel transmission/reflection
+  //     if (n[phot->curel] != n[phot->nextel])
+  //     {
+  //       if (FresnelPhoton(phot))
+  //         continue;
+  //     }
+  //
+  //     // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
+  //     prop *= mus[phot->curel] / mus[phot->nextel];
+  //
+  //
+  //
+  //     // Update current face of the photon to that face which it will be on in the next element
+  //     if (HN(phot->nextel, 0) == phot->curel)
+  //       phot->curface = 0;
+  //     else if (HN(phot->nextel, 1) == phot->curel)
+  //       phot->curface = 1;
+  //     else if (HN(phot->nextel, 2) == phot->curel)
+  //       phot->curface = 2;
+  //     else if (HN(phot->nextel, 3) == phot->curel)
+  //       phot->curface = 3;
+  //     else
+  //     {
+  //       loss++;
+  //       return;
+  //     }
+  //
+  //     // Update current element of the photon
+  //     phot->curel = phot->nextel;
+  //   }
+  //
+  //   // Scatter photon
+  //   if (mus[phot->curel] > 0.0)
+  //     ScatterPhoton(phot);
+  // }
+}
+
 // Run Monte Carlo
-inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int))
+template<typename T>
+void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int))
 {
 #ifdef USE_OMP
+  // std::cerr << "Using OpenMP implementation with " << omp_get_max_threads() << " threads" << std::endl;
 
   // OpenMP implementation
 
   // Spawn new MC3D classes with Nphoton' = Nphoton / ThreadCount, and initialize mt_rng seed
   int_fast64_t ii, jj, nthread = omp_get_max_threads();
   int_fast64_t *ticks = new int_fast64_t[(int)nthread];
-  MC3D *MCS = new MC3D[(int)nthread];
+  MC3D<T> *MCS = new MC3D<T>[(int)nthread];
   bool abort_computation = false;
   // [AL] the progress bar gets an update after every TICK_VAL photons
 #define TICK_VAL 1000
@@ -1668,7 +1928,7 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
 #pragma omp parallel
   {
     int_fast64_t iphoton, thread = omp_get_thread_num();
-    Photon phot;
+    Photon<T> phot;
     for (iphoton = 1; iphoton <= MCS[thread].Nphoton; iphoton++)
     {
       ticks[thread] = iphoton;
@@ -1683,7 +1943,7 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
             {
               csum += ticks[jj];
             }
-            if (!progress(100 * ((double)csum / (double)Nphoton)))
+            if (!progress(100 * ((T)csum / (T)Nphoton)))
             {
               abort_computation = true;
             }
@@ -1750,19 +2010,18 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
   delete[] MCS;
 
 #else
-
+  // std::cerr << "Using single thread implementation" << std::endl;
   // Single thread implementation
   long ii;
-
   long itick = max(static_cast<int_fast64_t>(1), Nphoton / 100);
   int percentage = 0;
   long iphoton;
-  Photon phot;
+  Photon<T> phot;
   for (iphoton = 0; iphoton < Nphoton; iphoton++)
   {
     if ((iphoton % itick == 0))
     {
-      percentage = ((double)100.0 * iphoton / (double)Nphoton);
+      percentage = ((T)100.0 * iphoton / (T)Nphoton);
       if (!progress(percentage))
         break;
     }
@@ -1793,25 +2052,25 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
     for (ii = 0; ii < H.Nx; ii++)
     {
       if (mua[ii] > 0.0)
-        ER[ii] /= mua[ii] * ElementVolume(ii) * (double)Nphoton;
+        ER[ii] /= mua[ii] * ElementVolume(ii) * (T)Nphoton;
       else
-        ER[ii] /= ElementVolume(ii) * (double)Nphoton;
+        ER[ii] /= ElementVolume(ii) * (T)Nphoton;
     }
     for (ii = 0; ii < BH.Nx; ii++)
-      EBR[ii] /= (double)Nphoton * ElementArea(ii);
+      EBR[ii] /= (T)Nphoton * ElementArea(ii);
   }
   else
   {
     for (ii = 0; ii < H.Nx; ii++)
     {
-      double a = ER[ii], b = EI[ii];
-      ER[ii] = (b * k[ii] + a * mua[ii]) / (pow(k[ii], 2) + pow(mua[ii], 2)) / (double)Nphoton / ElementVolume(ii);
-      EI[ii] = -(a * k[ii] - b * mua[ii]) / (pow(k[ii], 2) + pow(mua[ii], 2)) / (double)Nphoton / ElementVolume(ii);
+      T a = ER[ii], b = EI[ii];
+      ER[ii] = (b * k[ii] + a * mua[ii]) / (pow(k[ii], 2) + pow(mua[ii], 2)) / (T)Nphoton / ElementVolume(ii);
+      EI[ii] = -(a * k[ii] - b * mua[ii]) / (pow(k[ii], 2) + pow(mua[ii], 2)) / (T)Nphoton / ElementVolume(ii);
     }
     for (ii = 0; ii < BH.Nx; ii++)
     {
-      EBR[ii] /= (double)Nphoton * ElementArea(ii);
-      EBI[ii] /= (double)Nphoton * ElementArea(ii);
+      EBR[ii] /= (T)Nphoton * ElementArea(ii);
+      EBI[ii] /= (T)Nphoton * ElementArea(ii);
     }
   }
 
@@ -1820,7 +2079,8 @@ inline void MC3D::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,i
 }
 
 // Check if ray and triangle intersect
-inline int RayTriangleIntersects(double O[3], double D[3], double V0[3], double V1[3], double V2[3], double *t)
+template<typename T>
+int RayTriangleIntersects(T O[3], T D[3], T V0[3], T V1[3], T V2[3], T *t)
 {
 // O is the origin of line, D is the direction of line
 // V0, V1, V2 are the corners of the triangle.
@@ -1845,12 +2105,12 @@ inline int RayTriangleIntersects(double O[3], double D[3], double V0[3], double 
   dest[2] = v1[2] - v2[2];
 
   // The algorithm
-  double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3], det, inv_det, u, v;
+  T edge1[3], edge2[3], tvec[3], pvec[3], qvec[3], det, inv_det, u, v;
   SUB(edge1, V1, V0);
   SUB(edge2, V2, V0);
   CROSS(pvec, D, edge2);
   det = DOT(edge1, pvec);
-  if ((-eps < det) && (det < eps))
+  if ((-limit_map<T>::eps < det) && (det < limit_map<T>::eps))
     return (0);
   inv_det = 1.0 / det;
   SUB(tvec, O, V0);

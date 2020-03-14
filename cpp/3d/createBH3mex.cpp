@@ -14,7 +14,7 @@
 
 void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 {
-  
+
   if ((nrhs != 1) || (nlhs != 1))
   {
     mexErrMsgTxt("Syntax:\n [HN] = createBH3mex(H)\n");
@@ -23,7 +23,7 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   Array<double> r;
   Convert_mxArray(prhs[0], H);
   // Set parameters to MC
-  MC3D MC;
+  MC3D<double> MC;
   MC.H = H;
   int_fast64_t maxi = 0;
   for(int ii = 0; ii < MC.H.N; ii++) {if(maxi < MC.H[ii]) {maxi=MC.H[ii];} MC.H[ii]=MC.H[ii]-1;}

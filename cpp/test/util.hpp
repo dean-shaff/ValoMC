@@ -77,7 +77,7 @@ void load_array_from_json(
   ValoMC::test::util::load_array_from_vector(vec, arr);
 }
 
-
+template<typename T=double>
 class TestConfig {
 public:
 
@@ -92,9 +92,9 @@ public:
   void set_test_data_file_path (const std::string& _test_data_file_path) { test_data_file_path = _test_data_file_path; }
   const std::string& get_test_data_file_path() const { return test_data_file_path; }
 
-  void set_mc3d (MC3D& _mc3d) { mc3d = _mc3d; }
-  const MC3D& get_mc3d () const { return mc3d; }
-  MC3D& get_mc3d () { return mc3d; }
+  void set_mc3d (MC3D<T>& _mc3d) { mc3d = _mc3d; }
+  const MC3D<T>& get_mc3d () const { return mc3d; }
+  MC3D<T>& get_mc3d () { return mc3d; }
 
 private:
 
@@ -102,7 +102,7 @@ private:
 
   std::string test_data_file_path;
 
-  MC3D mc3d;
+  MC3D<T> mc3d;
 
 };
 

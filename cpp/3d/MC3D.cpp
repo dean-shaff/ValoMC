@@ -5,7 +5,7 @@
 #include <sstream>
 #include <utility>
 #include <iomanip>
-// define USE_OMP to utilize threading with OpenMP 
+// define USE_OMP to utilize threading with OpenMP
 //#define USE_OMP
 // define USE_MPI to utilize MPI in multicomputer cluster
 //#define USE_MPI
@@ -21,7 +21,7 @@
 #include "../versionstring.h"
 #include "../fileio.hpp"
 
-MC3D MC;
+MC3D<double> MC;
 
 
 int LoadProblem(char *fin);
@@ -75,7 +75,7 @@ int main(int argc, char **argv){
   tstart = (unsigned long) time(NULL);
   MC.MonteCarlo(Progress);
   tend = (unsigned long) time(NULL);
-  
+
   printf("Saving problem\n");
   if(SaveProblem(fout, tend-tstart)){
     printf("Error while saving!\n");
@@ -183,10 +183,10 @@ int SaveProblem_TXT(char *fout, int time){
   if(fp == NULL) return(1);
 
   fprintf(fp, "%i 0\n", time);
-  
+
   for(ii = 0; ii < MC.ER.Nx; ii++) fprintf(fp, "%18.10e %18.10e\n", MC.ER[ii], MC.EI[ii]);
   for(ii = 0; ii < MC.EBR.Nx; ii++) fprintf(fp, "%18.10e %18.10e\n", MC.EBR[ii], MC.EBI[ii]);
-  
+
   fclose(fp);
 
 

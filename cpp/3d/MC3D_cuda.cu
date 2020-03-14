@@ -44,7 +44,7 @@ __global__ void _monte_carlo_atomic (MC3DCUDA* mc3d) {
   // }
   curandState_t* states = mc3d->get_states();
   curandState_t local_state = states[idx];
-  Photon photon;
+  Photon<double> photon;
 
   for (int iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
     // if (idx == 0) {
@@ -206,7 +206,7 @@ __host__ __device__ void MC3DCUDA::normal (
 
 
 __host__ __device__ int MC3DCUDA::which_face (
-  Photon* phot,
+  Photon<double>* phot,
   double* dist
 )
 {
@@ -272,7 +272,7 @@ __host__ __device__ int MC3DCUDA::which_face (
 }
 
 
-__device__ void MC3DCUDA::create_photon (Photon* phot, curandState_t* state)
+__device__ void MC3DCUDA::create_photon (Photon<double> *phot, curandState_t* state)
 {
   // printf("MC3DCUDA::create_photon\n");
   double xi = ValoMC::util::rand_closed<curandState_t, double>(state);
@@ -547,7 +547,7 @@ __device__ void MC3DCUDA::create_photon (Photon* phot, curandState_t* state)
   phot->phase = phase0;
 }
 
-__device__ void MC3DCUDA::scatter_photon (Photon *phot, curandState_t* state)
+__device__ void MC3DCUDA::scatter_photon (Photon<double> *phot, curandState_t* state)
 {
   double xi, theta, phi;
   double dxn, dyn, dzn;
@@ -595,7 +595,7 @@ __device__ void MC3DCUDA::scatter_photon (Photon *phot, curandState_t* state)
   phot->curface = -1;
 }
 
-__host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t ib)
+__host__ __device__ void MC3DCUDA::mirror_photon (Photon<double> *phot, int_fast64_t ib)
 {
   double n[3], cdot;
   normal(ib, n);
@@ -605,7 +605,7 @@ __host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t ib)
   phot->dir[2] -= 2.0 * cdot * n[2];
 }
 
-__host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el, long f)
+__host__ __device__ void MC3DCUDA::mirror_photon (Photon<double> *phot, int_fast64_t el, long f)
 {
   double n[3], cdot;
   normal(el, f, n);
@@ -615,7 +615,7 @@ __host__ __device__ void MC3DCUDA::mirror_photon (Photon *phot, int_fast64_t el,
   phot->dir[2] -= 2.0 * cdot * n[2];
 }
 
-__device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
+__device__ int MC3DCUDA::fresnel_photon (Photon<double> *phot, curandState_t* state)
 {
 
   // Array<double> BCn = *BC_n;
@@ -714,7 +714,7 @@ __device__ int MC3DCUDA::fresnel_photon (Photon *phot, curandState_t* state)
  * @return       0, 1, or 2. 0 if photon has died, 1 if it needs to be scattered, 2 if its propagation needs to be continued.
  */
 __device__ int MC3DCUDA::propagate_photon_single_step_atomic (
-  Photon* phot,
+  Photon<double> *phot,
   curandState_t* state,
   double* prop,
   double* dist,
@@ -891,7 +891,7 @@ __device__ int MC3DCUDA::propagate_photon_single_step_atomic (
 }
 
 // Propagate until the photon dies
-__device__ void MC3DCUDA::propagate_photon_atomic (Photon *phot, curandState_t* state)
+__device__ void MC3DCUDA::propagate_photon_atomic (Photon<double> *phot, curandState_t* state)
 {
   double prop;
   double dist;

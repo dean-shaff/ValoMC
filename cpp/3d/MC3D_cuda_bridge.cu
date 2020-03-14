@@ -5,7 +5,7 @@
 
 namespace ValoMC {
 
-  void monte_carlo (MC3D& mc3d, unsigned states_size) {
+  void monte_carlo (MC3D<double>& mc3d, unsigned states_size) {
     // first check if MC3D::Init has been called.
     // If it hasn't then things will not work properly down the line
 

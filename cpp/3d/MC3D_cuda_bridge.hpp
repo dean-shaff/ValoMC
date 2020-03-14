@@ -12,7 +12,7 @@ namespace ValoMC {
  * @param mc3d MC3D object used to construct MC3DCUDA object in implementation
  * @param states_size number of curandState_t states to allocate
  */
-void monte_carlo (MC3D& mc3d, unsigned states_size=1000) ;
+void monte_carlo (MC3D<double>& mc3d, unsigned states_size=1000) ;
 
 
 }

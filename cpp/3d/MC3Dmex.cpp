@@ -157,7 +157,7 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 //  Convert_mxArray(prhs[15], GaussianSigma);
 
   // Set parameters to MC
-  MC3D MC;
+  MC3D<double> MC;
   MC.H = H;
   MC.HN = HN;
   MC.BH = BH;
