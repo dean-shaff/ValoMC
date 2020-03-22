@@ -338,6 +338,8 @@ MC3D<T>& MC3D<T>::operator=(const MC3D &ref)
 
     seed = ref.seed;
     InitRand();
+
+    Vn = ref.Vn;
   }
 
   return (*this);
@@ -827,21 +829,22 @@ void MC3D<T>::compute_Vn ()
   // T V2[3] = {r(H_phot_curel_2, 0), r(H_phot_curel_2, 1), r(H_phot_curel_2, 2)};
   // T V3[3] = {r(H_phot_curel_3, 0), r(H_phot_curel_3, 1), r(H_phot_curel_3, 2)};
 
-  std::cerr << "MC3D::compute_Vn" << std::endl;
+  // std::cerr << "MC3D::compute_Vn" << std::endl;
   Vn.resize(12*H.Nx);
 
-  int_fast64_t H_curel;
-
+  #if USE_OMP
+  #pragma parallel for
+  #endif
   for (unsigned idx=0; idx<H.Nx; idx++) {
     for (unsigned idy=0; idy<4; idy++) {
-      H_curel = H(idx, idy);
+      int_fast64_t H_curel = H(idx, idy);
       for (unsigned idz=0; idz<3; idz++) {
         // Vn[12*idx + 3*idy][idz] = r(H_curel, idz);
         Vn[12*idx + 3*idy + idz] = r(H_curel, idz);
       }
     }
   }
-  std::cerr << "MC3D::compute_Vn done" << std::endl;
+  // std::cerr << "MC3D::compute_Vn done" << std::endl;
 
 }
 
