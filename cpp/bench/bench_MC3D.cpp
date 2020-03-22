@@ -7,7 +7,7 @@
 #include "bench/util.hpp"
 
 template<typename T>
-ValoMC::bench::util::duration benchmark (unsigned nphotons, unsigned niter) {
+void benchmark (unsigned nphotons, unsigned niter) {
   auto t0 = ValoMC::bench::util::now();
   ValoMC::test::util::TestConfig<T> config;
   config.init_MC3D_from_json();
@@ -16,21 +16,51 @@ ValoMC::bench::util::duration benchmark (unsigned nphotons, unsigned niter) {
 
   MC3D<T> mc3d = config.get_mc3d();
 
+  mc3d.seed = 1584769671;
+  std::cerr << "mc3d.H.Nx=" << mc3d.H.Nx << std::endl;
   mc3d.Nphoton = nphotons;
   mc3d.ErrorChecks();
   mc3d.Init();
 
+  ValoMC::bench::util::duration delta_alt;
+  ValoMC::bench::util::duration delta_no_alt;
+
   t0 = ValoMC::bench::util::now();
+  auto t1 = ValoMC::bench::util::now();
   for (unsigned iter=0; iter<niter; iter++) {
+    mc3d.InitRand();
+    t0 = now();
     mc3d.MonteCarlo(
       [](T perc) -> bool {return true;},
       [](int csum, int Nphoton) {
         std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
-      }
+      },
+      false
     );
+    delta_no_alt += (ValoMC::bench::util::now() - t0);
+    mc3d.InitRand();
+    t1 = now();
+    mc3d.MonteCarlo(
+      [](T perc) -> bool {return true;},
+      [](int csum, int Nphoton) {
+        std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
+      },
+      true
+    );
+    delta_alt += (ValoMC::bench::util::now() - t1);
+
+
   }
-  ValoMC::bench::util::duration delta = ValoMC::bench::util::now() - t0;
-  return delta;
+  // ValoMC::bench::util::duration delta = ValoMC::bench::util::now() - t0;
+  std::cerr << "Alt version Took " << delta_alt.count() << " s, " << delta_alt.count() / niter << " s per loop" << std::endl;
+  std::cerr << "no Alt version Took " << delta_no_alt.count() << " s, " << delta_no_alt.count() / niter << " s per loop" << std::endl;
+
+  if (delta_no_alt > delta_alt) {
+    std::cerr << "Alternate version " << delta_no_alt.count() / delta_alt.count() << " times faster"  << std::endl;
+  } else {
+    std::cerr << "Normal version " << delta_alt.count() / delta_no_alt.count() << " times faster"  << std::endl;
+  }
+  // return delta;
 }
 
 
@@ -43,11 +73,11 @@ int main (int argc, char *argv[]) {
   }
   std::cerr << "Using " << nphotons << " photons" << std::endl;
 
-  auto delta_double = benchmark<double>(nphotons, niter);
-  auto delta_float = benchmark<float>(nphotons, niter);
+  benchmark<double>(nphotons, niter);
+  // auto delta_float = benchmark<float>(nphotons, niter);
 
-  std::cerr << "CPU double version took " << delta_double.count() << " s, " << delta_double.count() / niter << " s per loop" << std::endl;
-  std::cerr << "CPU float version took " << delta_float.count() << " s, " << delta_float.count() / niter << " s per loop" << std::endl;
+  // std::cerr << "CPU double version took " << delta_double.count() << " s, " << delta_double.count() / niter << " s per loop" << std::endl;
+  // std::cerr << "CPU float version took " << delta_float.count() << " s, " << delta_float.count() / niter << " s per loop" << std::endl;
 
-  std::cerr << "CPU float version " << delta_double / delta_float << " times faster" << std::endl;
+  // std::cerr << "CPU float version " << delta_double / delta_float << " times faster" << std::endl;
 }

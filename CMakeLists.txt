@@ -79,78 +79,78 @@ if (HAVE_CUDA)
     ${CPP_3D_DIR}
   )
 
-  add_library(mc3d SHARED ${mc3d_SOURCES})
-  target_include_directories(mc3d PUBLIC ${mc3d_INCLUDE_DIRECTORIES})
-  target_link_libraries(mc3d PUBLIC ${mc3d_LINK_LIBRARIES} ${ValoMC_LINK_OPTIONS})
-  set_property(TARGET mc3d PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-  target_compile_options(mc3d PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
-
+  # add_library(mc3d SHARED ${mc3d_SOURCES})
+  # target_include_directories(mc3d PUBLIC ${mc3d_INCLUDE_DIRECTORIES})
+  # target_link_libraries(mc3d PUBLIC ${mc3d_LINK_LIBRARIES} ${ValoMC_LINK_OPTIONS})
+  # set_property(TARGET mc3d PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+  # target_compile_options(mc3d PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
+  #
 endif()
 
-set(standalone_EXECUTABLES
-  MC2D
-  MC3D
-)
-
-set(MC2D_SOURCES
-  cpp/2d/MC2D.cpp
-)
-
-set(MC3D_SOURCES
-  cpp/3d/MC3D.cpp
-)
-
-foreach(exe ${standalone_EXECUTABLES})
-  add_executable(${exe} ${${exe}_SOURCES})
-  target_link_libraries(${exe} PUBLIC ${ValoMC_LINK_OPTIONS})
-  target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
-endforeach()
+# set(standalone_EXECUTABLES
+#   MC2D
+#   MC3D
+# )
+#
+# set(MC2D_SOURCES
+#   cpp/2d/MC2D.cpp
+# )
+#
+# set(MC3D_SOURCES
+#   cpp/3d/MC3D.cpp
+# )
+#
+# foreach(exe ${standalone_EXECUTABLES})
+#   add_executable(${exe} ${${exe}_SOURCES})
+#   target_link_libraries(${exe} PUBLIC ${ValoMC_LINK_OPTIONS})
+#   target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
+# endforeach()
 
 # add_subdirectory(cpp/test)
 add_subdirectory(cpp/bench)
 
-if (Matlab_FOUND)
-  get_filename_component(Matlab_MX_LIBRARY_PATH ${Matlab_MX_LIBRARY} DIRECTORY)
-  find_library(Matlab_UT_LIBRARY NAME libut.lib libut.so HINTS ${Matlab_MX_LIBRARY_PATH})
-
-  set(MC2Dmex_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp
-  )
-  set(MC3Dmex_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/MC3Dmex.cpp
-  )
-  set(createBH3_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/createBH3mex.cpp
-  )
-
-  set(matlab_EXECUTABLES
-    MC2Dmex
-    MC3Dmex
-    createBH3
-  )
-
-  matlab_get_mex_suffix(
-    ${Matlab_ROOT_DIR}
-    mex_suffix
-  )
-
-  foreach(exe ${matlab_EXECUTABLES})
-    # matlab_add_mex(NAME ${exe} OUTPUT_NAME ${exe} SRC ${${exe}_SOURCES})
-    add_library(${exe} SHARED ${${exe}_SOURCES})
-    set_target_properties(${exe} PROPERTIES SUFFIX ".${mex_suffix}" PREFIX "")
-    # can't use PRIVATE/PUBLIC with matlab_add_mex targets
-    target_link_libraries(${exe} ${ValoMC_LINK_OPTIONS} ${Matlab_MX_LIBRARY})
-    target_include_directories(${exe} PUBLIC ${Matlab_INCLUDE_DIRS})
-    target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
-    target_compile_definitions(${exe} PRIVATE MATLAB_MEXCMD_RELEASE=R2017b USE_MEX_CMD MATLAB_MEX_FILE)
-    if (Matlab_UT_LIBRARY)
-      target_link_libraries(${exe} ${Matlab_UT_LIBRARY})
-      target_compile_definitions(${exe} PRIVATE _MAKE_CTRL_C_POSSIBLE_)
-    endif()
-  endforeach()
-
-  if (HAVE_CUDA)
-    target_compile_options(MC3Dmex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
-    target_link_libraries(MC3Dmex ${mc3d_LINK_LIBRARIES} mc3d)
-  endif()
-endif()
+# if (Matlab_FOUND)
+#   get_filename_component(Matlab_MX_LIBRARY_PATH ${Matlab_MX_LIBRARY} DIRECTORY)
+#   find_library(Matlab_UT_LIBRARY NAME libut.lib libut.so HINTS ${Matlab_MX_LIBRARY_PATH})
+#
+#   set(MC2Dmex_SOURCES
+#     ${CMAKE_CURRENT_SOURCE_DIR}/cpp/2d/MC2Dmex.cpp
+#   )
+#   set(MC3Dmex_SOURCES
+#     ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/MC3Dmex.cpp
+#   )
+#   set(createBH3_SOURCES
+#     ${CMAKE_CURRENT_SOURCE_DIR}/cpp/3d/createBH3mex.cpp
+#   )
+#
+#   set(matlab_EXECUTABLES
+#     MC2Dmex
+#     MC3Dmex
+#     createBH3
+#   )
+#
+#   matlab_get_mex_suffix(
+#     ${Matlab_ROOT_DIR}
+#     mex_suffix
+#   )
+#
+#   foreach(exe ${matlab_EXECUTABLES})
+#     # matlab_add_mex(NAME ${exe} OUTPUT_NAME ${exe} SRC ${${exe}_SOURCES})
+#     add_library(${exe} SHARED ${${exe}_SOURCES})
+#     set_target_properties(${exe} PROPERTIES SUFFIX ".${mex_suffix}" PREFIX "")
+#     # can't use PRIVATE/PUBLIC with matlab_add_mex targets
+#     target_link_libraries(${exe} ${ValoMC_LINK_OPTIONS} ${Matlab_MX_LIBRARY})
+#     target_include_directories(${exe} PUBLIC ${Matlab_INCLUDE_DIRS})
+#     target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
+#     target_compile_definitions(${exe} PRIVATE MATLAB_MEXCMD_RELEASE=R2017b USE_MEX_CMD MATLAB_MEX_FILE)
+#     if (Matlab_UT_LIBRARY)
+#       target_link_libraries(${exe} ${Matlab_UT_LIBRARY})
+#       target_compile_definitions(${exe} PRIVATE _MAKE_CTRL_C_POSSIBLE_)
+#     endif()
+#   endforeach()
+#
+#   if (HAVE_CUDA)
+#     target_compile_options(MC3Dmex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
+#     target_link_libraries(MC3Dmex ${mc3d_LINK_LIBRARIES} mc3d)
+#   endif()
+# endif()

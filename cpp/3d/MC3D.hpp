@@ -2,16 +2,19 @@
 #define __MC3D_HPP__
 
 #define _USE_MATH_DEFINES
+
+#include <chrono>
+
 #include <cmath>
 // define USE_OMP prior to including MC3D.hpp to utilize OpenMP
 // define USE_MPI prior to including MC3D.hpp to utilize MPI
-
 #include <iostream>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
 #include <limits>
 #include <inttypes.h>
+#include <array>
 #include <vector>
 #include "Array.hpp"
 #include "../Errors.hpp"
@@ -30,10 +33,18 @@
 #define INT_FAST64_MAX __INT_FAST64_MAX__
 #endif
 
+// #define USE_NEW_WHICH_FACE
+
 // [DS] defining min and max as macros makes it hard to #include this file
 // down the line
 // #define min(a, b) ((a) < (b) ? (a) : (b))
 // #define max(a, b) ((a) > (b) ? (a) : (b))
+using duration = std::chrono::duration<double, std::ratio<1>>;
+
+inline std::chrono::time_point<std::chrono::high_resolution_clock> now () {
+  return std::chrono::high_resolution_clock::now();
+}
+
 
 template<typename T>
 T max (T a, T b) {
@@ -106,6 +117,7 @@ public:
   // Given position, direction, current element & current face photon is on,
   // will return nonzero if the photon will hit a face in element, and also the distance to the point of intersection
   int WhichFace(Photon<T> *phot, T *dist);
+  int WhichFace_alt(Photon<T> *phot, T *dist);
 
   // Create, scatter, mirror & propagate a photon
   void CreatePhoton(Photon<T> *phot);
@@ -113,15 +125,32 @@ public:
   void MirrorPhoton(Photon<T> *phot, int_fast64_t ib);
   void MirrorPhoton(Photon<T> *phot, int_fast64_t el, long f);
   int FresnelPhoton(Photon<T> *phot);
-  void PropagatePhoton(Photon<T> *phot);
+  void PropagatePhoton(Photon<T> *phot, bool use_alt=false);
+  int PropagatePhoton_SingleStep_alt(
+    Photon<T>* phot,
+    T* prop,
+    T* dist,
+    T* ds,
+    int_fast64_t* ib
+  );
+
   int PropagatePhoton_SingleStep(
     Photon<T>* phot,
     T* prop,
     T* dist,
     T* ds,
-    int_fast64_t* ib);
+    int_fast64_t* ib
+  );
+
+  void PropagatePhoton_SingleStep_UnmodulatedLight_alt(
+    Photon<T>* phot,
+    T* ds);
 
   void PropagatePhoton_SingleStep_UnmodulatedLight(
+    Photon<T>* phot,
+    T* ds);
+
+  void PropagatePhoton_SingleStep_ModulatedLight_alt (
     Photon<T>* phot,
     T* ds);
 
@@ -134,7 +163,7 @@ public:
     int_fast64_t* ib);
 
   // Perform MonteCarlo computation
-  void MonteCarlo(bool (*progress)(T) = NULL, void (*finalchecks)(int, int) = NULL);
+  void MonteCarlo(bool (*progress)(T) = NULL, void (*finalchecks)(int, int) = NULL, bool use_alt=false);
   // [AL] Check if the arrays seem valid
   void ErrorChecks();
 
@@ -143,6 +172,11 @@ public:
   void search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element);
 
 public:
+
+  void compute_Vn ();
+
+  std::vector<T> Vn;
+
   // Geometry
   Array<int_fast64_t> H, HN, BH; // Topology, Neigbourhood, Boundary
   Array<T> r;               // Grid nodes
@@ -774,9 +808,42 @@ void MC3D<T>::Init()
     }
   }
 
+  compute_Vn ();
+
   return;
 }
 
+
+template<typename T>
+void MC3D<T>::compute_Vn ()
+{
+  // const int_fast64_t H_phot_curel_0 = H(phot_curel, 0);
+  // const int_fast64_t H_phot_curel_1 = H(phot_curel, 1);
+  // const int_fast64_t H_phot_curel_2 = H(phot_curel, 2);
+  // const int_fast64_t H_phot_curel_3 = H(phot_curel, 3);
+  //
+  // T V0[3] = {r(H_phot_curel_0, 0), r(H_phot_curel_0, 1), r(H_phot_curel_0, 2)};
+  // T V1[3] = {r(H_phot_curel_1, 0), r(H_phot_curel_1, 1), r(H_phot_curel_1, 2)};
+  // T V2[3] = {r(H_phot_curel_2, 0), r(H_phot_curel_2, 1), r(H_phot_curel_2, 2)};
+  // T V3[3] = {r(H_phot_curel_3, 0), r(H_phot_curel_3, 1), r(H_phot_curel_3, 2)};
+
+  std::cerr << "MC3D::compute_Vn" << std::endl;
+  Vn.resize(12*H.Nx);
+
+  int_fast64_t H_curel;
+
+  for (unsigned idx=0; idx<H.Nx; idx++) {
+    for (unsigned idy=0; idy<4; idy++) {
+      H_curel = H(idx, idy);
+      for (unsigned idz=0; idz<3; idz++) {
+        // Vn[12*idx + 3*idy][idz] = r(H_curel, idz);
+        Vn[12*idx + 3*idy + idz] = r(H_curel, idz);
+      }
+    }
+  }
+  std::cerr << "MC3D::compute_Vn done" << std::endl;
+
+}
 
 template<typename T>
 void MC3D<T>::search_neighbor(std::vector<int_fast64_t> &neighborlist, int_fast64_t element)
@@ -1053,11 +1120,193 @@ void MC3D<T>::BuildLightSource()
     LightSourcesCDF[ii] /= LightSourcesCDF[NLightSource - 1];
 }
 
+template<typename T>
+int MC3D<T>::WhichFace_alt(Photon<T> *phot, T *dist)
+{
+  const int_fast64_t phot_curel = phot->curel;
+  const int_fast64_t phot_curface = phot->curface;
+
+  T* pos = phot->pos;
+  T* dir = phot->dir;
+
+  T* Vn_ptr = Vn.data() + 12*phot_curel;
+
+  // for (unsigned idx=0; idx<3; idx++) {
+  //   Vn_curel[0][idx] = Vn_ptr[0 + idx];
+  //   Vn_curel[1][idx] = Vn_ptr[3 + idx];
+  //   Vn_curel[2][idx] = Vn_ptr[6 + idx];
+  //   Vn_curel[3][idx] = Vn_ptr[9 + idx];
+  // }
+
+  // Vn_curel[0] = {Vn_ptr[0], Vn_ptr[1], Vn_ptr[2]};
+  // Vn_curel[1] = {Vn_ptr[3], Vn_ptr[4], Vn_ptr[5]};
+  // Vn_curel[2] = {Vn_ptr[6], Vn_ptr[7], Vn_ptr[8]};
+  // Vn_curel[3] = {Vn_ptr[9], Vn_ptr[10], Vn_ptr[11]};
+
+  T V0[3] = {Vn_ptr[0], Vn_ptr[1], Vn_ptr[2]};
+  T V1[3] = {Vn_ptr[3], Vn_ptr[4], Vn_ptr[5]};
+  T V2[3] = {Vn_ptr[6], Vn_ptr[7], Vn_ptr[8]};
+  T V3[3] = {Vn_ptr[9], Vn_ptr[10], Vn_ptr[11]};
+
+  // T* V0 = Vn_ptr;
+  // T* V1 = Vn_ptr + 3;
+  // T* V2 = Vn_ptr + 6;
+  // T* V3 = Vn_ptr + 9;
+
+  if (phot_curface != 0) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V1, V2, dist)) {
+      if (*dist > 0.0) {
+        phot->nextface = 0;
+        phot->nextel = HN(phot_curel, phot->nextface);
+        return 0;
+      }
+    }
+  }
+
+  if (phot_curface != 1) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V1, V3, dist)) {
+      if (*dist > 0.0) {
+        phot->nextface = 1;
+        phot->nextel = HN(phot_curel, phot->nextface);
+        return 1;
+      }
+    }
+  }
+
+  if (phot_curface != 2) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V2, V3, dist)) {
+      if (*dist > 0.0) {
+        phot->nextface = 2;
+        phot->nextel = HN(phot_curel, phot->nextface);
+        return 2;
+      }
+    }
+  }
+
+  if (phot_curface != 3) {
+    if (RayTriangleIntersects<T>(pos, dir, V1, V2, V3, dist)) {
+      if (*dist > 0.0) {
+        phot->nextface = 3;
+        phot->nextel = HN(phot_curel, phot->nextface);
+        return 3;
+      }
+    }
+  }
+
+
+    // int_fast64_t H_Nx = H.Nx;
+    //
+    // int_fast64_t* H_phot_curel_0 = H_data + phot_curel;
+    // int_fast64_t* H_phot_curel_1 = H_phot_curel_0 + H_Nx;
+    // int_fast64_t* H_phot_curel_2 = H_phot_curel_1 + H_Nx;
+    // int_fast64_t* H_phot_curel_3 = H_phot_curel_2 + H_Nx;
+    //
+    // T V0[3] = {r(*H_phot_curel_0, 0), r(*H_phot_curel_0, 1), r(*H_phot_curel_0, 2)};
+    // T V1[3] = {r(*H_phot_curel_1, 0), r(*H_phot_curel_1, 1), r(*H_phot_curel_1, 2)};
+    // T V2[3] = {r(*H_phot_curel_2, 0), r(*H_phot_curel_2, 1), r(*H_phot_curel_2, 2)};
+    // T V3[3] = {r(*H_phot_curel_3, 0), r(*H_phot_curel_3, 1), r(*H_phot_curel_3, 2)};
+
+
+    // std::vector<T*> faces = {
+    //   V0, V1, V2,
+    //   V0, V1, V3,
+    //   V0, V2, V3,
+    //   V1, V2, V3
+    // };
+
+    // for (int_fast64_t idx=0; idx<4; idx++) {
+    //   if (phot->curface != idx) {
+    //     // t0 = now();
+    //     int res = RayTriangleIntersects<T>(
+    //       phot->pos, phot->dir,
+    //       faces[3*idx], faces[3*idx + 1], faces[3*idx + 2], dist);
+    //     // WhichFace_ray_intersects += (now() - t0);
+    //     if (res) {
+    //       if (*dist > 0.0) {
+    //         // t0 = now();
+    //         phot->nextface = idx;
+    //         phot->nextel = HN(phot_curel, phot->nextface);
+    //         // WhichFace_phot_prop += (now() - t0);
+    //         return idx;
+    //       }
+    //     }
+    //   }
+    // }
+
+
+
+    // int_fast64_t* H_phot_curel = H.data + phot_curel;
+    // int_fast64_t H_Nx = H.Nx;
+    //
+    // T* r_data;
+    // int_fast64_t r_Nx = r.Nx;
+    //
+    // // std::array<T[3], 4> Vn;
+    //
+    // for (unsigned idx=0; idx<4; idx++) {
+    //   r_data = r.data + *H_phot_curel;
+    //   // std::cerr << "idx=" << idx << std::endl;
+    //   for (unsigned idy=0; idy<3; idy++) {
+    //     Vn[idx][idy] = *r_data;
+    //     r_data += r_Nx;
+    //     // std::cerr << "idy=" << idy << std::endl;
+    //   }
+    //   H_phot_curel += H_Nx;
+    // }
+
+    // if (phot->curface != 0) {
+    //   if (RayTriangleIntersects<T>(phot->pos, phot->dir, Vn[0], Vn[1], Vn[2], dist)) {
+    //     if (*dist > 0.0) {
+    //       phot->nextface = 0;
+    //       phot->nextel = HN(phot_curel, phot->nextface);
+    //       return 0;
+    //     }
+    //   }
+    // }
+    //
+    // if (phot->curface != 1) {
+    //   if (RayTriangleIntersects<T>(phot->pos, phot->dir, Vn[0], Vn[1], Vn[3], dist)) {
+    //     if (*dist > 0.0) {
+    //       phot->nextface = 1;
+    //       phot->nextel = HN(phot_curel, phot->nextface);
+    //       return 1;
+    //     }
+    //   }
+    // }
+    //
+    // if (phot->curface != 2) {
+    //   if (RayTriangleIntersects<T>(phot->pos, phot->dir, Vn[0], Vn[2], Vn[3], dist)) {
+    //     if (*dist > 0.0) {
+    //       phot->nextface = 2;
+    //       phot->nextel = HN(phot_curel, phot->nextface);
+    //       return 2;
+    //     }
+    //   }
+    // }
+    //
+    // if (phot->curface != 3) {
+    //   if (RayTriangleIntersects<T>(phot->pos, phot->dir, Vn[1], Vn[2], Vn[3], dist)) {
+    //     if (*dist > 0.0) {
+    //       phot->nextface = 3;
+    //       phot->nextel = HN(phot_curel, phot->nextface);
+    //       return 3;
+    //     }
+    //   }
+    // }
+  return -1;
+}
+
+
 // Determine which face a photon will exit a volumetric element from
 //int MC3D<T>::WhichFace(T curpos[3], T dir[3], int el, int face, T *dist){
 template<typename T>
 int MC3D<T>::WhichFace(Photon<T> *phot, T *dist)
 {
+
+  // duration WhichFace_array_access;
+  // duration WhichFace_ray_intersects;
+  // duration WhichFace_phot_prop;
+
   // phot - photon under test
   // dist - distance the photon can travel before hitting the face
   //
@@ -1065,48 +1314,63 @@ int MC3D<T>::WhichFace(Photon<T> *phot, T *dist)
   // -1 if no hit
   // 0, 1, 2 3 for faces formed by (V0, V1, V2), (V0, V1, V3), (V0, V2, V3), (V1, V2, V3) respectively
 
+  // const int_fast64_t phot_curel = phot->curel;
+  //
+  // const int_fast64_t H_phot_curel_0 = H(phot_curel, 0);
+  // const int_fast64_t H_phot_curel_1 = H(phot_curel, 1);
+  // const int_fast64_t H_phot_curel_2 = H(phot_curel, 2);
+  // const int_fast64_t H_phot_curel_3 = H(phot_curel, 3);
+  //
+  // T V0[3] = {r(H_phot_curel_0, 0), r(H_phot_curel_0, 1), r(H_phot_curel_0, 2)};
+  // T V1[3] = {r(H_phot_curel_1, 0), r(H_phot_curel_1, 1), r(H_phot_curel_1, 2)};
+  // T V2[3] = {r(H_phot_curel_2, 0), r(H_phot_curel_2, 1), r(H_phot_curel_2, 2)};
+  // T V3[3] = {r(H_phot_curel_3, 0), r(H_phot_curel_3, 1), r(H_phot_curel_3, 2)};
+
   T V0[3] = {r(H(phot->curel, 0), 0), r(H(phot->curel, 0), 1), r(H(phot->curel, 0), 2)};
   T V1[3] = {r(H(phot->curel, 1), 0), r(H(phot->curel, 1), 1), r(H(phot->curel, 1), 2)};
   T V2[3] = {r(H(phot->curel, 2), 0), r(H(phot->curel, 2), 1), r(H(phot->curel, 2), 2)};
   T V3[3] = {r(H(phot->curel, 3), 0), r(H(phot->curel, 3), 1), r(H(phot->curel, 3), 2)};
 
-  if (phot->curface != 0)
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V2, dist))
-      if (*dist > 0.0)
-      {
+  if (phot->curface != 0) {
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V2, dist)) {
+      if (*dist > 0.0) {
         phot->nextface = 0;
         phot->nextel = HN(phot->curel, phot->nextface);
-        return (0);
+        return 0;
       }
+    }
+  }
 
-  if (phot->curface != 1)
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V3, dist))
-      if (*dist > 0.0)
-      {
+  if (phot->curface != 1) {
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V3, dist)) {
+      if (*dist > 0.0) {
         phot->nextface = 1;
         phot->nextel = HN(phot->curel, phot->nextface);
-        return (1);
+        return 1;
       }
+    }
+  }
 
-  if (phot->curface != 2)
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V2, V3, dist))
-      if (*dist > 0.0)
-      {
+  if (phot->curface != 2) {
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V2, V3, dist)) {
+      if (*dist > 0.0) {
         phot->nextface = 2;
         phot->nextel = HN(phot->curel, phot->nextface);
-        return (2);
+        return 2;
       }
+    }
+  }
 
-  if (phot->curface != 3)
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V1, V2, V3, dist))
-      if (*dist > 0.0)
-      {
+  if (phot->curface != 3) {
+    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V1, V2, V3, dist)) {
+      if (*dist > 0.0) {
         phot->nextface = 3;
         phot->nextel = HN(phot->curel, phot->nextface);
-        return (3);
+        return 3;
       }
-
-  return (-1);
+    }
+  }
+  return -1;
 }
 
 // Create a new photon based on LightSources, LightSourcesMother and LighSourcesCDF
@@ -1505,17 +1769,75 @@ int MC3D<T>::FresnelPhoton(Photon<T> *phot)
   return (0);
 }
 
+
+
+template<typename T>
+void MC3D<T>::PropagatePhoton_SingleStep_UnmodulatedLight_alt(
+  Photon<T>* phot,
+  T* ds
+)
+{
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep_UnmodulatedLight" << std::endl;
+  const int_fast64_t phot_curel = phot->curel;
+  if (mua[phot_curel] > 0.0) {
+    ER[phot_curel] += (1.0 - exp(-mua[phot_curel] * (*ds))) * phot->weight;
+  } else {
+    ER[phot_curel] += phot->weight * (*ds);
+  }
+}
+
 template<typename T>
 void MC3D<T>::PropagatePhoton_SingleStep_UnmodulatedLight(
   Photon<T>* phot,
   T* ds
 )
 {
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep_UnmodulatedLight" << std::endl;
   if (mua[phot->curel] > 0.0) {
     ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * (*ds))) * phot->weight;
   } else {
     ER[phot->curel] += phot->weight * (*ds);
   }
+}
+
+template<typename T>
+void MC3D<T>::PropagatePhoton_SingleStep_ModulatedLight_alt (
+  Photon<T>* phot,
+  T* ds
+)
+{
+
+      /*
+    cls;
+
+    syms w0 mua k x ph0 s real;
+
+    % k = 0; ph0 = 0;
+
+    e = w0 * exp(-mua * x - j * (k * x + ph0));
+
+    g = int(e, x, 0, s);
+
+    syms a b real;
+
+    f = (a + i * b) / (mua + i * k);
+
+    % Change of element as photon passes it
+    pretty(simplify( real( g * (mua + i * k) ) ))
+    pretty(simplify( imag( g * (mua + i * k) ) ))
+
+    % Final divider / normalization
+    pretty( simplify( real(f) ) )
+    pretty( simplify( imag(f) ) )
+  */
+  const int_fast64_t phot_curel = phot->curel;
+
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep_ModulatedLight" << std::endl;
+  ER[phot_curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot_curel] * (*ds)) * exp(-mua[phot_curel] * (*ds)));
+  EI[phot_curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot_curel] * (*ds)) * exp(-mua[phot_curel] * (*ds)));
+
+  phot->phase += k[phot_curel] * (*ds);
+
 }
 
 template<typename T>
@@ -1548,7 +1870,7 @@ void MC3D<T>::PropagatePhoton_SingleStep_ModulatedLight (
     pretty( simplify( real(f) ) )
     pretty( simplify( imag(f) ) )
   */
-
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep_ModulatedLight" << std::endl;
   ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * (*ds)) * exp(-mua[phot->curel] * (*ds)));
   EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * (*ds)) * exp(-mua[phot->curel] * (*ds)));
 
@@ -1590,11 +1912,6 @@ int MC3D<T>::PropagatePhoton_SingleStep_TestBoundary(
   }
 }
 
-/**
- * Return 0 for dead photon, 1 if it needs to be scattered, 2 if propagation continues
- * @param phot   [description]
- * @param [name] [description]
- */
 template<typename T>
 int MC3D<T>::PropagatePhoton_SingleStep(
   Photon<T>* phot,
@@ -1604,12 +1921,11 @@ int MC3D<T>::PropagatePhoton_SingleStep(
   int_fast64_t* ib
 )
 {
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep" << std::endl;
   // Check through which face the photon will exit the current element
-  if (WhichFace(phot, dist) == -1)
-  {
+  if (WhichFace(phot, dist) == -1) {
     return 0;
   }
-
   // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
   *ds = fmin(*prop, *dist);
 
@@ -1640,7 +1956,7 @@ int MC3D<T>::PropagatePhoton_SingleStep(
 
   // Test for boundary conditions
   if (phot->nextel < 0) {
-    PropagatePhoton_SingleStep_TestBoundary(phot, ib);
+    return PropagatePhoton_SingleStep_TestBoundary(phot, ib);
   }
 
   // Test transmission from vacuum -> scattering media
@@ -1689,13 +2005,131 @@ int MC3D<T>::PropagatePhoton_SingleStep(
   phot->curel = phot->nextel;
   return 2;
 }
+/**
+ * Return 0 for dead photon, 1 if it needs to be scattered, 2 if propagation continues
+ * @param phot   [description]
+ * @param [name] [description]
+ */
+template<typename T>
+int MC3D<T>::PropagatePhoton_SingleStep_alt(
+  Photon<T>* phot,
+  T* prop,
+  T* dist,
+  T* ds,
+  int_fast64_t* ib
+)
+{
+  // std::cerr << "MC3D::PropagatePhoton_SingleStep" << std::endl;
+  // Check through which face the photon will exit the current element
+  if (WhichFace_alt(phot, dist) == -1) {
+    return 0;
+  }
+  const int_fast64_t phot_curel = phot->curel;
+  const int_fast64_t phot_nextel = phot->nextel;
+  // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
+  *ds = fmin(*prop, *dist);
+
+  // Move photon
+  for (unsigned idx=0; idx<3; idx++) {
+    phot->pos[idx] += phot->dir[idx] * (*ds);
+  }
+  // phot->pos[0] += phot->dir[0] * (*ds);
+  // phot->pos[1] += phot->dir[1] * (*ds);
+  // phot->pos[2] += phot->dir[2] * (*ds);
+
+  // Upgrade element fluence
+  if (omega <= 0.0) {
+    // Unmodulated light
+    PropagatePhoton_SingleStep_UnmodulatedLight_alt(phot, ds);
+  } else {
+    // Modulated light
+    PropagatePhoton_SingleStep_ModulatedLight_alt(phot, ds);
+  }
+
+  // Upgrade photon weight
+  phot->weight *= exp(-mua[phot_curel] * (*ds));
+
+  // Photon has reached a situation where it has to be scattered
+  *prop -= *ds;
+  if (*prop <= 0.0) {
+    return 1;
+  }
+
+  // Otherwise the photon will continue to pass through the boundaries of the current element
+
+  // Test for boundary conditions
+  if (phot_nextel < 0) {
+    return PropagatePhoton_SingleStep_TestBoundary(phot, ib);
+  }
+
+  // Test transmission from vacuum -> scattering media
+  if ((mus[phot_curel] <= 0.0) && (mus[phot_nextel] > 0.0))
+  {
+    // Draw new propagation distance -- otherwise photon might travel without scattering
+    *prop = -log(UnifOpen()) / mus[phot_nextel];
+  }
+
+  // Test for surival of the photon via roulette
+  if (phot->weight < weight0)
+  {
+    if (UnifClosed() > chance) {
+      return 0;
+    }
+    phot->weight /= chance;
+  }
+
+  // Fresnel transmission/reflection
+  if (n[phot_curel] != n[phot_nextel])
+  {
+    if (FresnelPhoton(phot)) {
+      return 2;
+    }
+  }
+
+  // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
+  *prop *= mus[phot_curel] / mus[phot_nextel];
+
+  int_fast64_t* HN_data = HN.data + phot_nextel;
+  int_fast64_t HN_Nx = HN.Nx;
+
+  // Update current face of the photon to that face which it will be on in the next element
+  bool curface_set = false;
+  for (int_fast64_t idx=0; idx<4; idx++) {
+    if (*HN_data == phot_curel) {
+      phot->curface = idx;
+      curface_set = true;
+      break;
+    }
+    HN_data += HN_Nx;
+  }
+
+  if (!curface_set) {
+    return 0;
+  }
+
+  // if (HN(phot_nextel, 0) == phot_curel) {
+  //   phot->curface = 0;
+  // } else if (HN(phot_nextel, 1) == phot_curel) {
+  //   phot->curface = 1;
+  // } else if (HN(phot_nextel, 2) == phot_curel) {
+  //   phot->curface = 2;
+  // } else if (HN(phot_nextel, 3) == phot_curel) {
+  //   phot->curface = 3;
+  // } else {
+  //   return 0;
+  // }
+
+  // Update current element of the photon
+  phot->curel = phot_nextel;
+  return 2;
+}
 
 
 
 
 // Propagate a photon until it dies
 template<typename T>
-void MC3D<T>::PropagatePhoton(Photon<T> *phot)
+void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
 {
   T prop, dist, ds;
   int_fast64_t ib;
@@ -1707,8 +2141,11 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot)
 
   while (alive)
   {
-    // Draw the propagation distance
-    single_step_res = PropagatePhoton_SingleStep(phot, &prop, &dist, &ds, &ib);
+    if (use_alt) {
+      single_step_res = PropagatePhoton_SingleStep_alt(phot, &prop, &dist, &ds, &ib);
+    } else {
+      single_step_res = PropagatePhoton_SingleStep(phot, &prop, &dist, &ds, &ib);
+    }
 
     if (single_step_res == 0) {
       loss++;
@@ -1895,7 +2332,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot)
 
 // Run Monte Carlo
 template<typename T>
-void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int))
+void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int), bool use_alt)
 {
 #ifdef USE_OMP
   // std::cerr << "Using OpenMP implementation with " << omp_get_max_threads() << " threads" << std::endl;
@@ -1953,7 +2390,7 @@ void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int))
           break;
       }
       MCS[thread].CreatePhoton(&phot);
-      MCS[thread].PropagatePhoton(&phot);
+      MCS[thread].PropagatePhoton(&phot, use_alt);
     }
   }
 #ifdef VALOMC_MEX
@@ -2026,7 +2463,7 @@ void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int))
         break;
     }
     CreatePhoton(&phot);
-    PropagatePhoton(&phot);
+    PropagatePhoton(&phot, use_alt);
   }
 
 #endif
