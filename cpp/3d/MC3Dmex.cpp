@@ -34,6 +34,18 @@ time_t starting_time;
 extern "C" bool utIsInterruptPending();
 #endif
 
+template<typename T>
+void get_bool(const T& mat_val bool& val)
+{
+  if (mxIsClass(mat_val, "logical")) { // means we've passed true/false
+    val = reinterpret_cast<bool*>(mxGetData(mat_val))[0];
+  } else if (mxIsClass(mat_val, "double")) {
+    val = static_cast<bool>(reinterpret_cast<double*>(mxGetData(mat_val))[0]);
+  } else {
+    mexPrintf("get_bool: Unrecognized type for parameter\n");
+  }
+}
+
 void finalchecks(int csum, int Nphoton) {
   if (csum != Nphoton)
   {
@@ -106,10 +118,10 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   version_string(infobuf);
   mexPrintf("%s",infobuf);
 
-  if ((nrhs > 19) || ((nlhs != 5) && (nlhs != 6)))
+  if ((nrhs > 20) || ((nlhs != 5) && (nlhs != 6)))
   {
     mexPrintf("nrhs %i nlhs %i", nrhs, nlhs);
-    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed, use_gpu)\n");
+    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed, use_gpu, use_alt)\n");
   }
   mexPrintf("Initializing MC3D...\n");
 
@@ -123,6 +135,7 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   Array<int_fast64_t> disable_pbar;
   Array<uint_fast64_t> rndseed;
   bool use_gpu = false;
+  bool use_alt = false;
 
   Convert_mxArray(prhs[0], H);
   Convert_mxArray(prhs[1], HN);
@@ -144,14 +157,12 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   Convert_mxArray(prhs[17], rndseed);
 
   if (nrhs == 19) {
-    if (mxIsClass(prhs[18], "logical")) { // means we've passed true/false
-      use_gpu = reinterpret_cast<bool*>(mxGetData(prhs[18]))[0];
-    } else if (mxIsClass(prhs[18], "double")) {
-      use_gpu = static_cast<bool>(reinterpret_cast<double*>(mxGetData(prhs[18]))[0]);
-    } else {
-      mexPrintf("Unrecognized type for `use_gpu` parameter\n");
-    }
+    get_bool(prhs[18], use_gpu);
+  } else if (nrhs == 20) {
+    get_bool(prhs[18], use_gpu);
+    get_bool(prhs[19], use_alt);
   }
+
   // mexPrintf("use_gpu %i\n", use_gpu);
 
 //  Convert_mxArray(prhs[15], GaussianSigma);
@@ -216,12 +227,12 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
        mexEvalString("assignin('base','abort_photonMC', false);");
        mexEvalString("mcwaitbar = waitbar(0,'Please wait..', 'name', 'Running simulation', 'CreateCancelBtn','abort_photonMC=true;');");
 
-       MC.MonteCarlo(Progress_with_bar, finalchecks_destroy_bar);
+       MC.MonteCarlo(Progress_with_bar, finalchecks_destroy_bar, use_alt);
        mexPrintf("...done\n");
        printf("\n"); fflush(stdout);
     } else {
        mexPrintf("Computing... \n");
-       MC.MonteCarlo(Progress, finalchecks);
+       MC.MonteCarlo(Progress, finalchecks, use_alt);
 
        mexPrintf("...done\n");
        printf("\n"); fflush(stdout);

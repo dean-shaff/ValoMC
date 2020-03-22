@@ -35,6 +35,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
 %         .disable_progressbar    - true or false
 %         .seed                   - random number generator seed
 %         .use_gpu                - boolean: attempt to use the GPU if true
+%         .use_alt                - boolean: Use alternate MC3D::MonteCarlo implementation
 %
 %
 % OUTPUT:
@@ -163,6 +164,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
     phase0 = 0;
     disable_pbar = int64(0);
     use_gpu = false;
+    use_alt = false;
 
     % complement with user provided options
     if(exist('vmcoptions')==1)
@@ -183,11 +185,13 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
         if (isfield(vmcoptions, 'use_gpu'))
           use_gpu = vmcoptions.use_gpu;
         end
-
-	if(isfield(vmcoptions, 'seed'))
-	    rnseed(1) = vmcoptions.seed;
-	    rnseed(2) = 1;
-	end
+        if (isfield(vmcoptions, 'use_alt'))
+          use_alt = vmcoptions.use_alt;
+        end
+        if(isfield(vmcoptions, 'seed'))
+            rnseed(1) = vmcoptions.seed;
+            rnseed(2) = 1;
+        end
     else
         vmcoptions = struct();
     end
@@ -348,7 +352,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
             %     'disable_pbar', 'rnseed'...
             % );
 
-            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), use_gpu);
+            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), use_gpu, use_alt);
         end
         if(isfield(vmcmedium,'nx') && isfield(vmcmedium,'ny') && isfield(vmcmedium,'nz'))
             % Three dimensional input
