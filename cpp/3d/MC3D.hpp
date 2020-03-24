@@ -842,10 +842,10 @@ void MC3D<T>::compute_Vn ()
   #if USE_OMP
   #pragma omp parallel for
   #endif
-  for (unsigned idx=0; idx<H.Nx; idx++) {
-    for (unsigned idy=0; idy<4; idy++) {
+  for (int_fast64_t idx=0; idx<H.Nx; idx++) {
+    for (int_fast64_t idy=0; idy<4; idy++) {
       int_fast64_t H_curel = H(idx, idy);
-      for (unsigned idz=0; idz<3; idz++) {
+      for (int_fast64_t idz=0; idz<3; idz++) {
         // Vn[12*idx + 3*idy][idz] = r(H_curel, idz);
         Vn[12*idx + 3*idy + idz] = r(H_curel, idz);
       }
