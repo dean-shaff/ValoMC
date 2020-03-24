@@ -135,9 +135,9 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   Convert_mxArray(prhs[3], r);
   mexPrintf("BCType\n");
   Convert_mxArray(prhs[4], BCType);
-  mexPrintf("source \n");
+  mexPrintf("BCIntensity\n");
   Convert_mxArray(prhs[5], BCIntensity);    // [AL]: New array for light source intensity
-  mexPrintf("or \n");
+  mexPrintf("BCLightDirectionType\n");
   Convert_mxArray(prhs[6], BCLightDirectionType); // [AL]: New array, determines if lightsource given relative to normal or not
   mexPrintf("BCLNormal\n");
   Convert_mxArray(prhs[7], BCLNormal);
