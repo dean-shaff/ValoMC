@@ -170,7 +170,7 @@ public:
     int_fast64_t* ib);
 
   // Perform MonteCarlo computation
-  void MonteCarlo(bool (*progress)(T) = NULL, void (*finalchecks)(int, int) = NULL, bool use_alt=false);
+  void MonteCarlo(bool (*progress)(double) = NULL, void (*finalchecks)(int, int) = NULL, bool use_alt=false);
   // [AL] Check if the arrays seem valid
   void ErrorChecks();
 
@@ -2347,7 +2347,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
 
 // Run Monte Carlo
 template<typename T>
-void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int), bool use_alt)
+void MC3D<T>::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int), bool use_alt)
 {
 #ifdef USE_OMP
   // std::cerr << "Using OpenMP implementation with " << omp_get_max_threads() << " threads" << std::endl;
@@ -2395,7 +2395,7 @@ void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int), bool
             {
               csum += ticks[jj];
             }
-            if (!progress(100 * ((T)csum / (T)Nphoton)))
+            if (!progress(100 * ((double)csum / (double)Nphoton)))
             {
               abort_computation = true;
             }
@@ -2473,7 +2473,7 @@ void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int), bool
   {
     if ((iphoton % itick == 0))
     {
-      percentage = ((T)100.0 * iphoton / (T)Nphoton);
+      percentage = ((double)100.0 * iphoton / (double)Nphoton);
       if (!progress(percentage))
         break;
     }

@@ -35,7 +35,7 @@ extern "C" bool utIsInterruptPending();
 #endif
 
 template<typename T>
-void get_bool(const T& mat_val bool& val)
+void get_bool(const T& mat_val, bool& val)
 {
   if (mxIsClass(mat_val, "logical")) { // means we've passed true/false
     val = reinterpret_cast<bool*>(mxGetData(mat_val))[0];
