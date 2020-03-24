@@ -72,8 +72,10 @@ int main (int argc, char *argv[]) {
     niter = std::stoi(argv[2]);
   }
   std::cerr << "Using " << nphotons << " photons" << std::endl;
-
-  benchmark<double>(nphotons, niter);
+  // std::cerr << "double" << std::endl;
+  // benchmark<double>(nphotons, niter);
+  std::cerr << "float" << std::endl;
+  benchmark<float>(nphotons, niter);
   // auto delta_float = benchmark<float>(nphotons, niter);
 
   // std::cerr << "CPU double version took " << delta_double.count() << " s, " << delta_double.count() / niter << " s per loop" << std::endl;
