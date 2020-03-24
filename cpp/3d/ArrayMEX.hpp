@@ -8,7 +8,8 @@
 
 
 // Convert MATLABs mxArray inp into Array class outp
-template <typename T> void Convert_mxArray(const mxArray *inp, Array<T> &outp){
+template <typename T>
+void Convert_mxArray(const mxArray *inp, Array<T> &outp){
   // Check that the mxArray type is supported & matches T
   mxClassID id = mxGetClassID(inp);
   int idok = 0;
@@ -42,7 +43,8 @@ template <typename T> void Convert_mxArray(const mxArray *inp, Array<T> &outp){
 }
 
 // Convert MATLABs complex mxArray inp into Array class outp and ioutp which correspond to real and imaginary data
-template <typename T> void Convert_mxArray(const mxArray *inp, Array<T> &outp, Array<T> &ioutp){
+template <typename T>
+void Convert_mxArray(const mxArray *inp, Array<T> &outp, Array<T> &ioutp){
   // Check that the mxArray type is supported & matches T
   mxClassID id = mxGetClassID(inp);
   int idok = 0;
@@ -83,7 +85,8 @@ template <typename T> void Convert_mxArray(const mxArray *inp, Array<T> &outp, A
 
 
 // Create output array of size Nx, Ny content of which can be modified through arr
-template <typename T> void Convert_mxArray(mxArray **mx, Array<T> &arr, long Nx, long Ny){
+template <typename T>
+void Convert_mxArray(mxArray **mx, Array<T> &arr, long Nx, long Ny){
   mxClassID id;
   if( typeid(T) == typeid(char) ) id = mxCHAR_CLASS;
   else if( typeid(T) == typeid(double) ) id = mxDOUBLE_CLASS;
@@ -121,7 +124,8 @@ template <typename T> void Convert_mxArray(mxArray **mx, Array<T> &arr, long Nx,
 
 
 // Create complex output array of size Nx, Ny content of which can be modified through arr and iarr
-template <typename T> void Convert_mxArray(mxArray **mx, Array<T> &arr, Array<T> &iarr, long Nx, long Ny){
+template <typename T>
+void Convert_mxArray(mxArray **mx, Array<T> &arr, Array<T> &iarr, long Nx, long Ny){
   mxClassID id;
   if( typeid(T) == typeid(char) ) id = mxCHAR_CLASS;
   else if( typeid(T) == typeid(double) ) id = mxDOUBLE_CLASS;

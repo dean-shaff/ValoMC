@@ -111,27 +111,15 @@ bool Progress(double perc){
   return true;
 }
 
-void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
-{
-  mexPrintf("                 ValoMC-3D\n");
-  char infobuf[5012];
-  version_string(infobuf);
-  mexPrintf("%s",infobuf);
-
-  if ((nrhs > 20) || ((nlhs != 5) && (nlhs != 6)))
-  {
-    mexPrintf("nrhs %i nlhs %i", nrhs, nlhs);
-    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed, use_gpu, use_alt)\n");
-  }
-  mexPrintf("Initializing MC3D...\n");
-
+template<typename T>
+void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   // Parse input
   Array<int_fast64_t> H, HN, BH;
-  Array<double> r, mua, mus, g, n, phase0;
+  Array<T> r, mua, mus, g, n, phase0;
   Array<char> BCType, BCLightDirectionType;
-  Array<double> BCLNormal, BCn, f, BCIntensity;
+  Array<T> BCLNormal, BCn, f, BCIntensity;
   Array<int_fast64_t> Nphoton;
-  Array<double> GaussianSigma;
+  Array<T> GaussianSigma;
   Array<int_fast64_t> disable_pbar;
   Array<uint_fast64_t> rndseed;
   bool use_gpu = false;
@@ -165,10 +153,10 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
 
   // mexPrintf("use_gpu %i\n", use_gpu);
 
-//  Convert_mxArray(prhs[15], GaussianSigma);
+  //  Convert_mxArray(prhs[15], GaussianSigma);
 
   // Set parameters to MC
-  MC3D<double> MC;
+  MC3D<T> MC;
   MC.H = H;
   MC.HN = HN;
   MC.BH = BH;
@@ -206,12 +194,12 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     return;
   }
 
-#ifndef HAVE_CUDA
+  #ifndef HAVE_CUDA
   if (use_gpu) {
     mexPrintf("CUDA funcitonality not available, defaulting to CPU\n");
     use_gpu = false;
   }
-#endif
+  #endif
 
   time(&starting_time);
   if (use_gpu) {
@@ -245,8 +233,8 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
   if(MC.loss) mexPrintf(" %ld photons lost during computation!\n", MC.loss);
 
   // Copy solution from MC to output
-  Array<double> vsolr, vsoli, bsolr, bsoli;
-  Array<double> dbsolr, dbsoli; // [AL]
+  Array<T> vsolr, vsoli, bsolr, bsoli;
+  Array<T> dbsolr, dbsoli; // [AL]
 
   Convert_mxArray(&plhs[0], vsolr, vsoli, MC.ER.Nx, MC.ER.Ny);
   Convert_mxArray(&plhs[1], bsolr, bsoli, MC.EBR.Nx, MC.EBR.Ny);
@@ -287,4 +275,32 @@ void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     }
   }
   mexPrintf("Done\n");
+}
+
+
+void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
+{
+  mexPrintf("                 ValoMC-3D\n");
+  char infobuf[5012];
+  version_string(infobuf);
+  mexPrintf("%s",infobuf);
+
+  if ((nrhs > 20) || ((nlhs != 5) && (nlhs != 6)))
+  {
+    mexPrintf("nrhs %i nlhs %i", nrhs, nlhs);
+    mexErrMsgTxt("Syntax:\n [vsol, bsol, ebsol, simulationtime, rnseed, [HN]] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLNormal, BCn, mua, mus, g, n, f, phase0, Nphoton, disablepbar, rnseed, use_gpu, use_alt)\n");
+  }
+  mexPrintf("Initializing MC3D...\n");
+
+  mxClassID id = mxGetClassID(prhs[3]);
+  if (id == mxDOUBLE_CLASS) {
+    mexPrintf("Double precision version\n");
+    run_MC3D<double> (nlhs, plhs, nrhs, prhs);
+  } else if (id == mxSINGLE_CLASS) {
+    mexPrintf("Single precision version\n");
+    run_MC3D<float> (nlhs, plhs, nrhs, prhs);
+  } else {
+    mexErrMsgTxt("Parameter r is unrecognized data type\n");
+  }
+
 }

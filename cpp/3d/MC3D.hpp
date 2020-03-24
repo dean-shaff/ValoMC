@@ -67,10 +67,10 @@ struct limit_map {
 template<typename T=double>
 int RayTriangleIntersects(T O[3], T D[3], T V0[3], T V1[3], T V2[3], T *t);
 
-inline int RayTriangleIntersects_alt(
-  const float O[3], const float D[3],
-  const float V0[3], const float V1[3],
-  const float V2[3], float *t);
+// inline int RayTriangleIntersects_alt(
+//   const float O[3], const float D[3],
+//   const float V0[3], const float V1[3],
+//   const float V2[3], float *t);
 
 // Structure to hold information of a photon-packet
 template<typename T=double>
@@ -2530,105 +2530,105 @@ void MC3D<T>::MonteCarlo(bool (*progress)(T), void (*finalchecks)(int,int), bool
     progress(100);
 }
 
-inline __m128 cross_sse (const __m128 v1, const __m128 v2)
-{
-  // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
-  // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
-  return _mm_sub_ps(
-    _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3, 1, 0, 2))),
-    _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3, 0, 2, 1)))
-  );
-  // float* c_ptr = reinterpret_cast<float*>(&c);
-  // dest[0] = *c_ptr;
-  // dest[1] = *(c_ptr + 1);
-  // dest[2] = *(c_ptr + 2);
-
-}
-
-inline float dot_sse (const __m128 v1, const __m128 v2)
-{
-  // __m128 mulRes, shufReg, sumsReg;
-  //  mulRes = _mm_mul_ps(v1, v2);
-  //
-  //  // Calculates the sum of SSE Register - https://stackoverflow.com/a/35270026/195787
-  //  shufReg = _mm_movehdup_ps(mulRes);        // Broadcast elements 3,1 to 2,0
-  //  sumsReg = _mm_add_ps(mulRes, shufReg);
-  //  shufReg = _mm_movehl_ps(shufReg, sumsReg); // High Half -> Low Half
-  //  sumsReg = _mm_add_ss(sumsReg, shufReg);
-  //  return  _mm_cvtss_f32(sumsReg); // Result in the lower part of the SSE Register
-
-  // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
-  // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
-  // __m128 r1 = _mm_mul_ps(v1, v2);
-  // __m128 shuf = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
-  // __m128 sums = _mm_add_ps(r1, shuf);
-  // shuf = _mm_movehl_ps(shuf, sums);
-  // sums = _mm_add_ss(sums, shuf);
-  // return _mm_cvtss_f32(sums);
-  // return _mm_dp_ps (v1, v2, 0);
-  __m128 mul_res = _mm_mul_ps(v1, v2);
-  return mul_res[0] + mul_res[1] + mul_res[2];
-  // return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-}
-
-inline __m128 sub_sse (const __m128 v1, const __m128 v2)
-{
-  // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
-  // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
-  // __m128 c = _mm_sub_ps(a, b);
-  // float* c_ptr = reinterpret_cast<float*>(&c);
-  //
-  // dest[0] = *c_ptr;
-  // dest[1] = *(c_ptr + 1);
-  // dest[2] = *(c_ptr + 2);
-  return _mm_sub_ps(v1, v2);
-}
-
-// template<typename T>
-int RayTriangleIntersects_alt(const float* O, const float* D, const float* V0, const float* V1, const float* V2, float *t) //, T* scratch)
-{
-// O is the origin of line, D is the direction of line
-// V0, V1, V2 are the corners of the triangle.
-//   If the line intersects the triangle, will return nonzero and t will be set to value such that
-// O + t D will equal the intersection point
+// inline __m128 cross_sse (const __m128 v1, const __m128 v2)
+// {
+//   // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
+//   // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
+//   return _mm_sub_ps(
+//     _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3, 1, 0, 2))),
+//     _mm_mul_ps(_mm_shuffle_ps(v1, v1, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3, 0, 2, 1)))
+//   );
+//   // float* c_ptr = reinterpret_cast<float*>(&c);
+//   // dest[0] = *c_ptr;
+//   // dest[1] = *(c_ptr + 1);
+//   // dest[2] = *(c_ptr + 2);
 //
-// Source:
-//   Fast, Minimum Storage Ray/Triangle Intersection
-//   Tomas Moeller and Ben Trumbore
-//   Journal of Graphics Tools, 2(1):21--28, 1997.
-  const float eps = limit_map<float>::eps;
-  // The algorithm
-  __m128 O_128 = _mm_setr_ps(O[0], O[1], O[2], 0.0f);
-  __m128 D_128 = _mm_setr_ps(D[0], D[1], D[2], 0.0f);
-  __m128 V0_128 = _mm_setr_ps(V0[0], V0[1], V0[2], 0.0f);
-  __m128 V1_128 = _mm_setr_ps(V1[0], V1[1], V1[2], 0.0f);
-  __m128 V2_128 = _mm_setr_ps(V2[0], V2[1], V2[2], 0.0f);
-
-  __m128 edge1, edge2, tvec, pvec, qvec;
-  float det, inv_det, u, v;
-
-  edge1 = sub_sse(V1_128, V0_128);
-  edge2 = sub_sse(V2_128, V0_128);
-  pvec = cross_sse(D_128, edge2);
-  det = dot_sse(edge1, pvec);
-  if ((-eps < det) && (det < eps)) {
-    return 0;
-  }
-  inv_det = 1.0 / det;
-  tvec = sub_sse(O_128, V0_128);
-  u = dot_sse(tvec, pvec) * inv_det;
-  if ((u < 0.0) || (u > 1.0)) {
-    return 0;
-  }
-  qvec = cross_sse(tvec, edge1);
-  v = dot_sse(D_128, qvec) * inv_det;
-  if ((v < 0.0) || (u + v > 1.0)) {
-    return 0;
-  }
-  *t = dot_sse(edge2, qvec) * inv_det;
-
-  return 1;
-}
+// }
+//
+// inline float dot_sse (const __m128 v1, const __m128 v2)
+// {
+//   // __m128 mulRes, shufReg, sumsReg;
+//   //  mulRes = _mm_mul_ps(v1, v2);
+//   //
+//   //  // Calculates the sum of SSE Register - https://stackoverflow.com/a/35270026/195787
+//   //  shufReg = _mm_movehdup_ps(mulRes);        // Broadcast elements 3,1 to 2,0
+//   //  sumsReg = _mm_add_ps(mulRes, shufReg);
+//   //  shufReg = _mm_movehl_ps(shufReg, sumsReg); // High Half -> Low Half
+//   //  sumsReg = _mm_add_ss(sumsReg, shufReg);
+//   //  return  _mm_cvtss_f32(sumsReg); // Result in the lower part of the SSE Register
+//
+//   // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
+//   // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
+//   // __m128 r1 = _mm_mul_ps(v1, v2);
+//   // __m128 shuf = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
+//   // __m128 sums = _mm_add_ps(r1, shuf);
+//   // shuf = _mm_movehl_ps(shuf, sums);
+//   // sums = _mm_add_ss(sums, shuf);
+//   // return _mm_cvtss_f32(sums);
+//   // return _mm_dp_ps (v1, v2, 0);
+//   __m128 mul_res = _mm_mul_ps(v1, v2);
+//   return mul_res[0] + mul_res[1] + mul_res[2];
+//   // return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+// }
+//
+// inline __m128 sub_sse (const __m128 v1, const __m128 v2)
+// {
+//   // __m128 a = _mm_setr_ps(v1[0], v1[1], v1[2], 0);
+//   // __m128 b = _mm_setr_ps(v2[0], v2[1], v2[2], 0);
+//   // __m128 c = _mm_sub_ps(a, b);
+//   // float* c_ptr = reinterpret_cast<float*>(&c);
+//   //
+//   // dest[0] = *c_ptr;
+//   // dest[1] = *(c_ptr + 1);
+//   // dest[2] = *(c_ptr + 2);
+//   return _mm_sub_ps(v1, v2);
+// }
+//
+// // template<typename T>
+// int RayTriangleIntersects_alt(const float* O, const float* D, const float* V0, const float* V1, const float* V2, float *t) //, T* scratch)
+// {
+// // O is the origin of line, D is the direction of line
+// // V0, V1, V2 are the corners of the triangle.
+// //   If the line intersects the triangle, will return nonzero and t will be set to value such that
+// // O + t D will equal the intersection point
+// //
+// // Source:
+// //   Fast, Minimum Storage Ray/Triangle Intersection
+// //   Tomas Moeller and Ben Trumbore
+// //   Journal of Graphics Tools, 2(1):21--28, 1997.
+//   const float eps = limit_map<float>::eps;
+//   // The algorithm
+//   __m128 O_128 = _mm_setr_ps(O[0], O[1], O[2], 0.0f);
+//   __m128 D_128 = _mm_setr_ps(D[0], D[1], D[2], 0.0f);
+//   __m128 V0_128 = _mm_setr_ps(V0[0], V0[1], V0[2], 0.0f);
+//   __m128 V1_128 = _mm_setr_ps(V1[0], V1[1], V1[2], 0.0f);
+//   __m128 V2_128 = _mm_setr_ps(V2[0], V2[1], V2[2], 0.0f);
+//
+//   __m128 edge1, edge2, tvec, pvec, qvec;
+//   float det, inv_det, u, v;
+//
+//   edge1 = sub_sse(V1_128, V0_128);
+//   edge2 = sub_sse(V2_128, V0_128);
+//   pvec = cross_sse(D_128, edge2);
+//   det = dot_sse(edge1, pvec);
+//   if ((-eps < det) && (det < eps)) {
+//     return 0;
+//   }
+//   inv_det = 1.0 / det;
+//   tvec = sub_sse(O_128, V0_128);
+//   u = dot_sse(tvec, pvec) * inv_det;
+//   if ((u < 0.0) || (u > 1.0)) {
+//     return 0;
+//   }
+//   qvec = cross_sse(tvec, edge1);
+//   v = dot_sse(D_128, qvec) * inv_det;
+//   if ((v < 0.0) || (u + v > 1.0)) {
+//     return 0;
+//   }
+//   *t = dot_sse(edge2, qvec) * inv_det;
+//
+//   return 1;
+// }
 
 
 // Check if ray and triangle intersect
