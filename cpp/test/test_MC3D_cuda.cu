@@ -10,19 +10,26 @@ CATCH_TRANSLATE_EXCEPTION( mcerror& ex ) {
 }
 
 
-static ValoMC::test::util::TestConfig config;
+template<typename T>
+struct Config {
+  static ValoMC::test::util::TestConfig<T> config;
+};
 
-TEST_CASE(
+template<typename T>
+ValoMC::test::util::TestConfig<T> Config<T>::config;
+
+
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can calculate the amount of space needed ",
-  "[MC3DCUDA][unit][get_total_memory_usage]"
+  "[MC3DCUDA][unit][get_total_memory_usage]",
+  float, double
 )
 {
-
   unsigned states_size = 100;
 
-  config.init_MC3D_from_json();
+  Config<TestType>::config.init_MC3D_from_json();
 
-  ValoMC::MC3DCUDA mc3dcuda(config.get_mc3d(), 0);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(Config<TestType>::config.get_mc3d(), 0);
 
   unsigned int baseline = mc3dcuda.get_total_memory_usage();
   mc3dcuda.set_states_size(states_size);
@@ -31,17 +38,18 @@ TEST_CASE(
   REQUIRE(usage - baseline == sizeof(curandState_t)*states_size);
 }
 
-TEST_CASE(
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can initialize properties from MC3D object",
-  "[MC3DCUDA][unit][init]"
+  "[MC3DCUDA][unit][init]",
+  float, double
 )
 {
-  config.init_MC3D_from_json();
-  MC3D mc3d = config.get_mc3d();
+  Config<TestType>::config.init_MC3D_from_json();
+  MC3D<TestType> mc3d = Config<TestType>::config.get_mc3d();
 
   mc3d.Nphoton = 100;
 
-  ValoMC::MC3DCUDA mc3dcuda(mc3d, 1);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(mc3d, 1);
 
   mc3dcuda.init();
 
@@ -63,15 +71,16 @@ __global__ void iter_states(
 }
 
 
-TEST_CASE(
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can allocate memory",
-  "[MC3DCUDA][unit][allocate]"
+  "[MC3DCUDA][unit][allocate]",
+  float, double
 )
 {
   unsigned states_size = 10;
-  config.init_MC3D_from_json();
+  Config<TestType>::config.init_MC3D_from_json();
 
-  ValoMC::MC3DCUDA mc3dcuda(config.get_mc3d(), states_size);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(Config<TestType>::config.get_mc3d(), states_size);
 
   mc3dcuda.allocate();
   unsigned result_h = 0;
@@ -100,15 +109,16 @@ __global__ void iter_boundary (Array<T>* boundary, unsigned* result)
 }
 
 
-TEST_CASE(
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can transfer arrays from MC3D object to internal Array objects",
-  "[MC3DCUDA][unit][h2d]"
+  "[MC3DCUDA][unit][h2d]",
+  float, double
 )
 {
-  config.init_MC3D_from_json();
-  MC3D mc3d = config.get_mc3d();
+  Config<TestType>::config.init_MC3D_from_json();
+  MC3D<TestType> mc3d = Config<TestType>::config.get_mc3d();
 
-  ValoMC::MC3DCUDA mc3dcuda(mc3d, 1);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(mc3d, 1);
 
   mc3dcuda.allocate();
   mc3dcuda.h2d();
@@ -120,7 +130,7 @@ TEST_CASE(
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaMemcpy(&result_h, result_d, sizeof(unsigned), cudaMemcpyDeviceToHost));
 
-  REQUIRE(result_h == config.get_mc3d().BH.N);
+  REQUIRE(result_h == Config<TestType>::config.get_mc3d().BH.N);
 
   gpuErrchk(cudaDeviceSynchronize());
 
@@ -139,16 +149,17 @@ __global__ void fill_array (Array<T>* arr, T val)
 }
 
 
-TEST_CASE(
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can transfer result arrays to MC3D object",
-  "[MC3DCUDA][unit][d2h]"
+  "[MC3DCUDA][unit][d2h]",
+  float, double
 )
 {
-  config.init_MC3D_from_json();
+  Config<TestType>::config.init_MC3D_from_json();
 
-  MC3D mc3d = config.get_mc3d();
+  MC3D<TestType> mc3d = Config<TestType>::config.get_mc3d();
 
-  ValoMC::MC3DCUDA mc3dcuda(mc3d, 1);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(mc3d, 1);
 
   mc3dcuda.allocate();
 
@@ -156,7 +167,7 @@ TEST_CASE(
 
   unsigned block_size = 1024;
   unsigned grid_size = 1;
-  fill_array<<<block_size, grid_size>>> (mc3dcuda.get_pow_den_vol_real(), 1.0);
+  fill_array<TestType><<<block_size, grid_size>>>(mc3dcuda.get_pow_den_vol_real(), 1.0);
   gpuErrchk(cudaGetLastError());
   mc3dcuda.d2h();
 
@@ -173,19 +184,20 @@ TEST_CASE(
 }
 
 
-TEST_CASE(
+TEMPLATE_TEST_CASE(
   "MC3DCUDA can do monte_carlo simulation",
-  "[MC3DCUDA][unit][monte_carlo]"
+  "[MC3DCUDA][unit][monte_carlo]",
+  float, double
 )
 {
-  config.init_MC3D_from_json();
+  Config<TestType>::config.init_MC3D_from_json();
 
-  MC3D mc3d = config.get_mc3d();
+  MC3D<TestType> mc3d = Config<TestType>::config.get_mc3d();
   mc3d.Nphoton = 100;
   mc3d.ErrorChecks();
   mc3d.Init();
 
-  ValoMC::MC3DCUDA mc3dcuda(mc3d, 100);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda(mc3d, 100);
 
   mc3dcuda.allocate();
   mc3dcuda.h2d();

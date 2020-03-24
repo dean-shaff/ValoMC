@@ -55,20 +55,30 @@ namespace util {
     static constexpr double eps = std::numeric_limits<double>::epsilon();
   };
 
+  template<typename dtype>
+  struct eps_map {
+    static constexpr dtype eps = std::numeric_limits<dtype>::epsilon();
+  };
+
+
+  template<typename dtype>
   __host__ __device__ int ray_triangle_intersects (
-    double O[3],
-    double D[3],
-    double V0[3],
-    double V1[3],
-    double V2[3],
-    double *t
+    dtype O[3],
+    dtype D[3],
+    dtype V0[3],
+    dtype V1[3],
+    dtype V2[3],
+    dtype *t
   );
 
-  __host__ __device__ void cross (double dest[3], double v1[3], double v2[3]);
+  template<typename dtype>
+  __host__ __device__ void cross (dtype dest[3], dtype v1[3], dtype v2[3]);
 
-  __host__ __device__ double dot (double v1[3], double v2[3]);
+  template<typename dtype>
+  __host__ __device__ dtype dot (dtype v1[3], dtype v2[3]);
 
-  __host__ __device__ void sub (double dest[3], double v1[3], double v2[3]);
+  template<typename dtype>
+  __host__ __device__ void sub (dtype dest[3], dtype v1[3], dtype v2[3]);
 
   // Create a random number on [0,1]-real-interval
   template<typename State, typename T>
