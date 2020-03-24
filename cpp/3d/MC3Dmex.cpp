@@ -125,41 +125,41 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   bool use_gpu = false;
   bool use_alt = false;
 
-  mexPrintf("H\n");
+  // mexPrintf("H\n");
   Convert_mxArray(prhs[0], H);
-  mexPrintf("HN\n");
+  // mexPrintf("HN\n");
   Convert_mxArray(prhs[1], HN);
-  mexPrintf("BH\n");
+  // mexPrintf("BH\n");
   Convert_mxArray(prhs[2], BH);
-  mexPrintf("r\n");
+  // mexPrintf("r\n");
   Convert_mxArray(prhs[3], r);
-  mexPrintf("BCType\n");
+  // mexPrintf("BCType\n");
   Convert_mxArray(prhs[4], BCType);
-  mexPrintf("BCIntensity\n");
+  // mexPrintf("BCIntensity\n");
   Convert_mxArray(prhs[5], BCIntensity);    // [AL]: New array for light source intensity
-  mexPrintf("BCLightDirectionType\n");
+  // mexPrintf("BCLightDirectionType\n");
   Convert_mxArray(prhs[6], BCLightDirectionType); // [AL]: New array, determines if lightsource given relative to normal or not
-  mexPrintf("BCLNormal\n");
+  // mexPrintf("BCLNormal\n");
   Convert_mxArray(prhs[7], BCLNormal);
-  mexPrintf("BCn\n");
+  // mexPrintf("BCn\n");
   Convert_mxArray(prhs[8], BCn);
-  mexPrintf("mua\n");
+  // mexPrintf("mua\n");
   Convert_mxArray(prhs[9], mua);
-  mexPrintf("mus\n");
+  // mexPrintf("mus\n");
   Convert_mxArray(prhs[10], mus);
-  mexPrintf("g\n");
+  // mexPrintf("g\n");
   Convert_mxArray(prhs[11], g);
-  mexPrintf("n\n");
+  // mexPrintf("n\n");
   Convert_mxArray(prhs[12], n);
-  mexPrintf("f\n");
+  // mexPrintf("f\n");
   Convert_mxArray(prhs[13], f);
-  mexPrintf("phase0\n");
+  // mexPrintf("phase0\n");
   Convert_mxArray(prhs[14], phase0);
-  mexPrintf("Nphoton\n");
+  // mexPrintf("Nphoton\n");
   Convert_mxArray(prhs[15], Nphoton);
-  mexPrintf("disable_pbar\n");
+  // mexPrintf("disable_pbar\n");
   Convert_mxArray(prhs[16], disable_pbar);
-  mexPrintf("rndseed\n");
+  // mexPrintf("rndseed\n");
   Convert_mxArray(prhs[17], rndseed);
 
   if (nrhs == 19) {
