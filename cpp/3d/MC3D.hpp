@@ -1164,7 +1164,7 @@ int MC3D<T>::WhichFace_alt(Photon<T> *phot, T *dist)
   // T* V3 = Vn_ptr + 9;
 
   if (phot_curface != 0) {
-    if (RayTriangleIntersects(pos, dir, V0, V1, V2, dist)) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V1, V2, dist)) {
       if (*dist > 0.0) {
         phot->nextface = 0;
         phot->nextel = HN(phot_curel, phot->nextface);
@@ -1174,7 +1174,7 @@ int MC3D<T>::WhichFace_alt(Photon<T> *phot, T *dist)
   }
 
   if (phot_curface != 1) {
-    if (RayTriangleIntersects(pos, dir, V0, V1, V3, dist)) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V1, V3, dist)) {
       if (*dist > 0.0) {
         phot->nextface = 1;
         phot->nextel = HN(phot_curel, phot->nextface);
@@ -1184,7 +1184,7 @@ int MC3D<T>::WhichFace_alt(Photon<T> *phot, T *dist)
   }
 
   if (phot_curface != 2) {
-    if (RayTriangleIntersects(pos, dir, V0, V2, V3, dist)) {
+    if (RayTriangleIntersects<T>(pos, dir, V0, V2, V3, dist)) {
       if (*dist > 0.0) {
         phot->nextface = 2;
         phot->nextel = HN(phot_curel, phot->nextface);
@@ -1194,7 +1194,7 @@ int MC3D<T>::WhichFace_alt(Photon<T> *phot, T *dist)
   }
 
   if (phot_curface != 3) {
-    if (RayTriangleIntersects(pos, dir, V1, V2, V3, dist)) {
+    if (RayTriangleIntersects<T>(pos, dir, V1, V2, V3, dist)) {
       if (*dist > 0.0) {
         phot->nextface = 3;
         phot->nextel = HN(phot_curel, phot->nextface);
@@ -1313,74 +1313,55 @@ template<typename T>
 int MC3D<T>::WhichFace(Photon<T> *phot, T *dist)
 {
 
-  // duration WhichFace_array_access;
-  // duration WhichFace_ray_intersects;
-  // duration WhichFace_phot_prop;
-
   // phot - photon under test
-  // dist - distance the photon can travel before hitting the face
-  //
-  // Return values:
-  // -1 if no hit
-  // 0, 1, 2 3 for faces formed by (V0, V1, V2), (V0, V1, V3), (V0, V2, V3), (V1, V2, V3) respectively
+    // dist - distance the photon can travel before hitting the face
+    //
+    // Return values:
+    // -1 if no hit
+    // 0, 1, 2 3 for faces formed by (V0, V1, V2), (V0, V1, V3), (V0, V2, V3), (V1, V2, V3) respectively
 
-  // const int_fast64_t phot_curel = phot->curel;
-  //
-  // const int_fast64_t H_phot_curel_0 = H(phot_curel, 0);
-  // const int_fast64_t H_phot_curel_1 = H(phot_curel, 1);
-  // const int_fast64_t H_phot_curel_2 = H(phot_curel, 2);
-  // const int_fast64_t H_phot_curel_3 = H(phot_curel, 3);
-  //
-  // T V0[3] = {r(H_phot_curel_0, 0), r(H_phot_curel_0, 1), r(H_phot_curel_0, 2)};
-  // T V1[3] = {r(H_phot_curel_1, 0), r(H_phot_curel_1, 1), r(H_phot_curel_1, 2)};
-  // T V2[3] = {r(H_phot_curel_2, 0), r(H_phot_curel_2, 1), r(H_phot_curel_2, 2)};
-  // T V3[3] = {r(H_phot_curel_3, 0), r(H_phot_curel_3, 1), r(H_phot_curel_3, 2)};
+    T V0[3] = {r(H(phot->curel, 0), 0), r(H(phot->curel, 0), 1), r(H(phot->curel, 0), 2)};
+    T V1[3] = {r(H(phot->curel, 1), 0), r(H(phot->curel, 1), 1), r(H(phot->curel, 1), 2)};
+    T V2[3] = {r(H(phot->curel, 2), 0), r(H(phot->curel, 2), 1), r(H(phot->curel, 2), 2)};
+    T V3[3] = {r(H(phot->curel, 3), 0), r(H(phot->curel, 3), 1), r(H(phot->curel, 3), 2)};
 
-  T V0[3] = {r(H(phot->curel, 0), 0), r(H(phot->curel, 0), 1), r(H(phot->curel, 0), 2)};
-  T V1[3] = {r(H(phot->curel, 1), 0), r(H(phot->curel, 1), 1), r(H(phot->curel, 1), 2)};
-  T V2[3] = {r(H(phot->curel, 2), 0), r(H(phot->curel, 2), 1), r(H(phot->curel, 2), 2)};
-  T V3[3] = {r(H(phot->curel, 3), 0), r(H(phot->curel, 3), 1), r(H(phot->curel, 3), 2)};
+    if (phot->curface != 0)
+      if (RayTriangleIntersects(phot->pos, phot->dir, V0, V1, V2, dist))
+        if (*dist > 0.0)
+        {
+          phot->nextface = 0;
+          phot->nextel = HN(phot->curel, phot->nextface);
+          return (0);
+        }
 
-  if (phot->curface != 0) {
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V2, dist)) {
-      if (*dist > 0.0) {
-        phot->nextface = 0;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 0;
-      }
-    }
-  }
+    if (phot->curface != 1)
+      if (RayTriangleIntersects(phot->pos, phot->dir, V0, V1, V3, dist))
+        if (*dist > 0.0)
+        {
+          phot->nextface = 1;
+          phot->nextel = HN(phot->curel, phot->nextface);
+          return (1);
+        }
 
-  if (phot->curface != 1) {
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V1, V3, dist)) {
-      if (*dist > 0.0) {
-        phot->nextface = 1;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 1;
-      }
-    }
-  }
+    if (phot->curface != 2)
+      if (RayTriangleIntersects(phot->pos, phot->dir, V0, V2, V3, dist))
+        if (*dist > 0.0)
+        {
+          phot->nextface = 2;
+          phot->nextel = HN(phot->curel, phot->nextface);
+          return (2);
+        }
 
-  if (phot->curface != 2) {
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V0, V2, V3, dist)) {
-      if (*dist > 0.0) {
-        phot->nextface = 2;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 2;
-      }
-    }
-  }
+    if (phot->curface != 3)
+      if (RayTriangleIntersects(phot->pos, phot->dir, V1, V2, V3, dist))
+        if (*dist > 0.0)
+        {
+          phot->nextface = 3;
+          phot->nextel = HN(phot->curel, phot->nextface);
+          return (3);
+        }
 
-  if (phot->curface != 3) {
-    if (RayTriangleIntersects<T>(phot->pos, phot->dir, V1, V2, V3, dist)) {
-      if (*dist > 0.0) {
-        phot->nextface = 3;
-        phot->nextel = HN(phot->curel, phot->nextface);
-        return 3;
-      }
-    }
-  }
-  return -1;
+    return (-1);
 }
 
 // Create a new photon based on LightSources, LightSourcesMother and LighSourcesCDF
@@ -2032,6 +2013,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   // std::cerr << "MC3D::PropagatePhoton_SingleStep" << std::endl;
   // Check through which face the photon will exit the current element
   if (WhichFace_alt(phot, dist) == -1) {
+    // std::cerr << "WhichFace_alt == -1" << std::endl;
     return 0;
   }
   const int_fast64_t phot_curel = phot->curel;
@@ -2170,174 +2152,175 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
       }
     }
   } else {
-    T prop, dist, ds;
-    int_fast64_t ib;
-    // Propagate until the photon dies
-    while (1)
-    {
-      // Draw the propagation distance
-      prop = -log(UnifOpen()) / mus[phot->curel];
+     T prop, dist, ds;
+     int_fast64_t ib;
+     // Propagate until the photon dies
+     while (1)
+     {
+       // Draw the propagation distance
+       prop = -log(UnifOpen()) / mus[phot->curel];
 
-      // Propagate until the current propagation distance runs out (and a scattering will occur)
-      while (1)
-      {
-        // Check through which face the photon will exit the current element
-        if (WhichFace(phot, &dist) == -1)
-        {
-          loss++;
-          return;
-        }
+       // Propagate until the current propagation distance runs out (and a scattering will occur)
+       while (1)
+       {
+         // Check through which face the photon will exit the current element
+         if (WhichFace(phot, &dist) == -1)
+         {
+           // std::cerr << "WhichFace == -1" << std::endl;
+           loss++;
+           return;
+         }
 
-        // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
-        ds = fmin(prop, dist);
+         // Travel distance -- Either propagate to the boundary of the element, or to the end of the leap, whichever is closer
+         ds = fmin(prop, dist);
 
-        // Move photon
-        phot->pos[0] += phot->dir[0] * ds;
-        phot->pos[1] += phot->dir[1] * ds;
-        phot->pos[2] += phot->dir[2] * ds;
+         // Move photon
+         phot->pos[0] += phot->dir[0] * ds;
+         phot->pos[1] += phot->dir[1] * ds;
+         phot->pos[2] += phot->dir[2] * ds;
 
-        // Upgrade element fluence
-        if (omega <= 0.0)
-        {
-          // Unmodulated light
-          if (mua[phot->curel] > 0.0)
-          {
-            ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
-          }
-          else
-          {
-            ER[phot->curel] += phot->weight * ds;
-          }
-        }
-        else
-        {
-          // Modulated light
+         // Upgrade element fluence
+         if (omega <= 0.0)
+         {
+           // Unmodulated light
+           if (mua[phot->curel] > 0.0)
+           {
+             ER[phot->curel] += (1.0 - exp(-mua[phot->curel] * ds)) * phot->weight;
+           }
+           else
+           {
+             ER[phot->curel] += phot->weight * ds;
+           }
+         }
+         else
+         {
+           // Modulated light
 
-          /*
-   	    cls;
+           /*
+    	    cls;
 
-  	    syms w0 mua k x ph0 s real;
+   	    syms w0 mua k x ph0 s real;
 
-  	    % k = 0; ph0 = 0;
+   	    % k = 0; ph0 = 0;
 
-  	    e = w0 * exp(-mua * x - j * (k * x + ph0));
+   	    e = w0 * exp(-mua * x - j * (k * x + ph0));
 
-  	    g = int(e, x, 0, s);
+   	    g = int(e, x, 0, s);
 
-  	    syms a b real;
+   	    syms a b real;
 
-  	    f = (a + i * b) / (mua + i * k);
+   	    f = (a + i * b) / (mua + i * k);
 
-  	    % Change of element as photon passes it
-  	    pretty(simplify( real( g * (mua + i * k) ) ))
-  	    pretty(simplify( imag( g * (mua + i * k) ) ))
+   	    % Change of element as photon passes it
+   	    pretty(simplify( real( g * (mua + i * k) ) ))
+   	    pretty(simplify( imag( g * (mua + i * k) ) ))
 
-  	    % Final divider / normalization
-  	    pretty( simplify( real(f) ) )
-  	    pretty( simplify( imag(f) ) )
-  	*/
+   	    % Final divider / normalization
+   	    pretty( simplify( real(f) ) )
+   	    pretty( simplify( imag(f) ) )
+   	*/
 
-          ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
-          EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+           ER[phot->curel] += phot->weight * (cos(phot->phase) - cos(-phot->phase - k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
+           EI[phot->curel] += phot->weight * (-sin(phot->phase) + sin(phot->phase + k[phot->curel] * ds) * exp(-mua[phot->curel] * ds));
 
-          phot->phase += k[phot->curel] * ds;
-        }
+           phot->phase += k[phot->curel] * ds;
+         }
 
-        // Upgrade photon weight
-        phot->weight *= exp(-mua[phot->curel] * ds);
+         // Upgrade photon weigh
+         phot->weight *= exp(-mua[phot->curel] * ds);
 
-        // Photon has reached a situation where it has to be scattered
-        prop -= ds;
-        if (prop <= 0.0)
-          break;
+         // Photon has reached a situation where it has to be scattered
+         prop -= ds;
+         if (prop <= 0.0)
+           break;
 
-        // Otherwise the photon will continue to pass through the boundaries of the current element
+         // Otherwise the photon will continue to pass through the boundaries of the current element
 
-        // Test for boundary conditions
-        if (phot->nextel < 0)
-        {
-          // Boundary element index
-          ib = -1 - phot->nextel;
-          char BCType_ib = BCType[ib];
-          if ((BCType_ib == 'm') || (BCType_ib == 'L') || (BCType_ib == 'I') || (BCType_ib == 'C'))
-          {
-            // Mirror boundary condition -- Reflect the photon
-            MirrorPhoton(phot, ib);
-            phot->curface = phot->nextface;
-            continue;
-          }
-          else
-          {
-            // Absorbing (a, l, i and c)
-            // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
-            if (BCn[ib] > 0.0)
-              if (FresnelPhoton(phot))
-                continue;
+         // Test for boundary conditions
+         if (phot->nextel < 0)
+         {
+           // Boundary element index
+           ib = -1 - phot->nextel;
 
-            if (omega <= 0.0)
-            {
-              EBR[ib] += phot->weight;
-            }
-            else
-            {
-              EBR[ib] += phot->weight * cos(phot->phase);
-              EBI[ib] -= phot->weight * sin(phot->phase);
-            }
-            // Photon propagation will terminate
-            return;
-          }
-        }
+           if ((BCType[ib] == 'm') || (BCType[ib] == 'L') || (BCType[ib] == 'I') || (BCType[ib] == 'C'))
+           {
+             // Mirror boundary condition -- Reflect the photon
+             MirrorPhoton(phot, ib);
+             phot->curface = phot->nextface;
+             continue;
+           }
+           else
+           {
+             // Absorbing (a, l, i and c)
+             // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
+             if (BCn[ib] > 0.0)
+               if (FresnelPhoton(phot))
+                 continue;
 
-        // Test transmission from vacuum -> scattering media
-        if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
-        {
-          // Draw new propagation distance -- otherwise photon might travel without scattering
-          prop = -log(UnifOpen()) / mus[phot->nextel];
-        }
+             if (omega <= 0.0)
+             {
+               EBR[ib] += phot->weight;
+             }
+             else
+             {
+               EBR[ib] += phot->weight * cos(phot->phase);
+               EBI[ib] -= phot->weight * sin(phot->phase);
+             }
+             // Photon propagation will terminate
+             return;
+           }
+         }
 
-        // Test for surival of the photon via roulette
-        if (phot->weight < weight0)
-        {
-          if (UnifClosed() > chance)
-            return;
-          phot->weight /= chance;
-        }
+         // Test transmission from vacuum -> scattering media
+         if ((mus[phot->curel] <= 0.0) && (mus[phot->nextel] > 0.0))
+         {
+           // Draw new propagation distance -- otherwise photon might travel without scattering
+           prop = -log(UnifOpen()) / mus[phot->nextel];
+         }
 
-        // Fresnel transmission/reflection
-        if (n[phot->curel] != n[phot->nextel])
-        {
-          if (FresnelPhoton(phot))
-            continue;
-        }
+         // Test for surival of the photon via roulette
+         if (phot->weight < weight0)
+         {
+           if (UnifClosed() > chance)
+             return;
+           phot->weight /= chance;
+         }
 
-        // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
-        prop *= mus[phot->curel] / mus[phot->nextel];
+         // Fresnel transmission/reflection
+         if (n[phot->curel] != n[phot->nextel])
+         {
+           if (FresnelPhoton(phot))
+             continue;
+         }
+
+         // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
+         prop *= mus[phot->curel] / mus[phot->nextel];
 
 
 
-        // Update current face of the photon to that face which it will be on in the next element
-        if (HN(phot->nextel, 0) == phot->curel)
-          phot->curface = 0;
-        else if (HN(phot->nextel, 1) == phot->curel)
-          phot->curface = 1;
-        else if (HN(phot->nextel, 2) == phot->curel)
-          phot->curface = 2;
-        else if (HN(phot->nextel, 3) == phot->curel)
-          phot->curface = 3;
-        else
-        {
-          loss++;
-          return;
-        }
+         // Update current face of the photon to that face which it will be on in the next element
+         if (HN(phot->nextel, 0) == phot->curel)
+           phot->curface = 0;
+         else if (HN(phot->nextel, 1) == phot->curel)
+           phot->curface = 1;
+         else if (HN(phot->nextel, 2) == phot->curel)
+           phot->curface = 2;
+         else if (HN(phot->nextel, 3) == phot->curel)
+           phot->curface = 3;
+         else
+         {
+           loss++;
+           return;
+         }
 
-        // Update current element of the photon
-        phot->curel = phot->nextel;
-      }
+         // Update current element of the photon
+         phot->curel = phot->nextel;
+       }
 
-      // Scatter photon
-      if (mus[phot->curel] > 0.0)
-        ScatterPhoton(phot);
-    }
+       // Scatter photon
+       if (mus[phot->curel] > 0.0)
+         ScatterPhoton(phot);
+     }
   }
 
 

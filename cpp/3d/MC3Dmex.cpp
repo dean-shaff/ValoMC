@@ -227,6 +227,7 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
     #endif
   } else {
     // Compute
+    mexPrintf("Using alt=%d\n", use_alt);
     if(disable_pbar[0] == 0) {
        mexPrintf("Computing... \n");
       // Create a wait bar

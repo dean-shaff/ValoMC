@@ -1,10 +1,15 @@
  function test_MC3D (n_photons)
+  if ~exist('n_photons', 'var')
+    n_photons=1e6;
+  end
+  n_photons=int64(n_photons);
   load('MC3Dmex.input.mat');
   fprintf('Testing with %d photons\n', n_photons);
-  % disable_pbar = int64(1);
 
+  disable_pbar = int64(1);
   single_res = zeros(1, 2);
   double_res = zeros(1, 2);
+
 
   for use_alt = 0:1
     if ~use_alt
@@ -13,7 +18,7 @@
       text='Alternate';
     end
 
-    fprintf('%s CPU single precision version\n', text);
+    fprintf('%s CPU double precision version\n', text);
     t_start = tic;
     [element_fluence, boundary_exitance, boundary_fluence, simulation_time, seed_used] = MC3Dmex(...
       H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType,...
@@ -22,7 +27,7 @@
     t_end_double = toc(t_start);
     double_res(use_alt + 1) = t_end_double;
 
-    fprintf('%s CPU double precision version\n', text);
+    fprintf('%s CPU single precision version\n', text);
     t_start = tic;
     [element_fluence, boundary_exitance, boundary_fluence, simulation_time, seed_used] = MC3Dmex(...
       H, HN, BH, single(r), BCType, single(BCIntensity), BCLightDirectionType,...
@@ -61,4 +66,6 @@
   fprintf('Alternate CPU double precision version took %f sec\n', double_res(2));
   fprintf('Alternate CPU double precision version %f times faster\n', double_res(1) / double_res(2));
 
+  fprintf('Reference CPU single precision version %f times faster\n', double_res(1) / single_res(1));
+  fprintf('Alternate CPU single precision version %f times faster\n', double_res(2) / single_res(2));
 end

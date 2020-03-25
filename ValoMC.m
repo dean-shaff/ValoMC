@@ -36,6 +36,7 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
 %         .seed                   - random number generator seed
 %         .use_gpu                - boolean: attempt to use the GPU if true
 %         .use_alt                - boolean: Use alternate MC3D::MonteCarlo implementation
+%         .use_single             - boolean: Use single precision implementation
 %
 %
 % OUTPUT:
@@ -187,6 +188,9 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
         end
         if (isfield(vmcoptions, 'use_alt'))
           use_alt = vmcoptions.use_alt;
+        end
+        if (isfield(vmcoptions, 'use_single'))
+          use_single = vmcoptions.use_single;
         end
         if(isfield(vmcoptions, 'seed'))
             rnseed(1) = vmcoptions.seed;
@@ -351,8 +355,11 @@ function solution = ValoMC(vmcmesh, vmcmedium, vmcboundary, vmcoptions)
             %     'mua', 'mus', 'g', 'n', 'f', 'phase0', 'Nphoton',...
             %     'disable_pbar', 'rnseed'...
             % );
-
-            [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), use_gpu, use_alt);
+            if ~use_single
+              [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, r, BCType, BCIntensity, BCLightDirectionType, BCLightDirection, BCn, mua, mus, g, n, f, phase0, Nphoton,disable_pbar, uint64(rnseed), use_gpu, use_alt);
+            else
+              [solution.element_fluence, solution.boundary_exitance, solution.boundary_fluence, solution.simulation_time, solution.seed_used] = MC3Dmex(H, HN, BH, single(r), BCType, single(BCIntensity), BCLightDirectionType, single(BCLightDirection), single(BCn), single(mua), single(mus), single(g), single(n), single(f), single(phase0), Nphoton, disable_pbar, uint64(rnseed), use_gpu, use_alt);
+            end
         end
         if(isfield(vmcmedium,'nx') && isfield(vmcmedium,'ny') && isfield(vmcmedium,'nz'))
             % Three dimensional input
