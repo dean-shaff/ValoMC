@@ -38,6 +38,10 @@
 
   end
 
+  function res = speedup (slower, faster)
+    res = 1.0 / (1.0 - faster/slower)
+  end
+
   fprintf('GPU double precision version\n');
   t_start = tic;
   [element_fluence, boundary_exitance, boundary_fluence, simulation_time, seed_used] = MC3Dmex(...
@@ -56,16 +60,16 @@
 
   fprintf('GPU single precision version took %f sec\n', t_end_single_gpu);
   fprintf('GPU double precision version took %f sec\n', t_end_double_gpu);
-  fprintf('GPU single precision version %f times faster\n', t_end_double_gpu / t_end_single_gpu);
+  fprintf('GPU single precision version %f times faster\n', speedup(t_end_double_gpu, t_end_single_gpu));
 
   fprintf('Reference CPU single precision version took %f sec\n', single_res(1));
   fprintf('Alternate CPU single precision version took %f sec\n', single_res(2));
-  fprintf('Alternate CPU single precision version %f times faster\n', single_res(1) / single_res(2));
+  fprintf('Alternate CPU single precision version %f times faster\n', speedup(single_res(1), single_res(2)));
 
   fprintf('Reference CPU double precision version took %f sec\n', double_res(1));
   fprintf('Alternate CPU double precision version took %f sec\n', double_res(2));
-  fprintf('Alternate CPU double precision version %f times faster\n', double_res(1) / double_res(2));
+  fprintf('Alternate CPU double precision version %f times faster\n', speedup(double_res(1), double_res(2)));
 
-  fprintf('Reference CPU single precision version %f times faster\n', double_res(1) / single_res(1));
-  fprintf('Alternate CPU single precision version %f times faster\n', double_res(2) / single_res(2));
+  fprintf('Reference CPU single precision version %f times faster\n', speedup(double_res(1), single_res(1)));
+  fprintf('Alternate CPU single precision version %f times faster\n', speedup(double_res(2), single_res(2)));
 end
