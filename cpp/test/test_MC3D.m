@@ -72,5 +72,5 @@ end
 
 
 function res = speedup (slower, faster)
-  res = 1.0 / (1.0 - faster/slower)
+  res = 1.0 / (faster/slower);
 end
