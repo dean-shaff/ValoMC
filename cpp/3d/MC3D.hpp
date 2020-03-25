@@ -2340,9 +2340,9 @@ void MC3D<T>::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int),
   // OpenMP implementation
 
   // Spawn new MC3D classes with Nphoton' = Nphoton / ThreadCount, and initialize mt_rng seed
-  std::cerr << "Using OpenMP implementation with " << nthread << " threads" << std::endl;
 
   int_fast64_t ii, jj, nthread = omp_get_max_threads();
+  // std::cerr << "Using OpenMP implementation with " << nthread << " threads" << std::endl;
   int_fast64_t *ticks = new int_fast64_t[(int)nthread];
   MC3D<T> *MCS = new MC3D<T>[(int)nthread];
   bool abort_computation = false;
@@ -2413,6 +2413,7 @@ void MC3D<T>::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int),
   for (jj = 0; jj < nthread; jj++)
   {
     Nphoton += MCS[jj].Nphoton;
+    // std::cerr << "thread=" << jj << " loss=" << MCS[jj].loss << " Nphoton=" << MCS[jj].Nphoton << std::endl;
     loss += MCS[jj].loss;
   }
   for (ii = 0; ii < H.Nx; ii++)

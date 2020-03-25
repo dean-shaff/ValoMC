@@ -17,7 +17,6 @@ void benchmark (unsigned nphotons, unsigned niter) {
   MC3D<T> mc3d = config.get_mc3d();
 
   mc3d.seed = 1584769671;
-  std::cerr << "mc3d.H.Nx=" << mc3d.H.Nx << std::endl;
   mc3d.Nphoton = nphotons;
   mc3d.ErrorChecks();
   mc3d.Init();
@@ -38,8 +37,8 @@ void benchmark (unsigned nphotons, unsigned niter) {
       false
     );
     delta_no_alt += (ValoMC::bench::util::now() - t0);
-    std::cerr << "Lost " << mc3d.loss << " photons" << std::endl;
     mc3d.InitRand();
+
     t1 = now();
     mc3d.MonteCarlo(
       [](double perc) -> bool {return true;},
@@ -49,8 +48,6 @@ void benchmark (unsigned nphotons, unsigned niter) {
       true
     );
     delta_alt += (ValoMC::bench::util::now() - t1);
-    std::cerr << "Lost " << mc3d.loss << " photons" << std::endl;
-
 
   }
   // ValoMC::bench::util::duration delta = ValoMC::bench::util::now() - t0;
@@ -73,10 +70,10 @@ int main (int argc, char *argv[]) {
     nphotons = std::stoi(argv[1]);
     niter = std::stoi(argv[2]);
   }
-  std::cerr << "Using " << nphotons << " photons" << std::endl;
-  // std::cerr << "double" << std::endl;
-  // benchmark<double>(nphotons, niter);
-  std::cerr << "float" << std::endl;
+  std::cerr << "Using " << nphotons << " photons, " << niter << " iterations" << std::endl;
+  std::cerr << "Benchmarking double version" << std::endl;
+  benchmark<double>(nphotons, niter);
+  std::cerr << "Benchmarking float version" << std::endl;
   benchmark<float>(nphotons, niter);
   // auto delta_float = benchmark<float>(nphotons, niter);
 
