@@ -816,9 +816,6 @@ void MC3D<T>::Init()
       BCLNormal(ii, 2) = old_bclx * e1[2] + old_bcly * e2[2] + old_bclz * n[2];
     }
   }
-
-  compute_Vn ();
-
   return;
 }
 
@@ -2267,6 +2264,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
                EBI[ib] -= phot->weight * sin(phot->phase);
              }
              // Photon propagation will terminate
+             loss++;
              return;
            }
          }
@@ -2281,8 +2279,10 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
          // Test for surival of the photon via roulette
          if (phot->weight < weight0)
          {
-           if (UnifClosed() > chance)
+           if (UnifClosed() > chance) {
+             loss++;
              return;
+           }
            phot->weight /= chance;
          }
 
@@ -2307,8 +2307,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
            phot->curface = 2;
          else if (HN(phot->nextel, 3) == phot->curel)
            phot->curface = 3;
-         else
-         {
+         else {
            loss++;
            return;
          }
@@ -2332,12 +2331,17 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
 template<typename T>
 void MC3D<T>::MonteCarlo(bool (*progress)(double), void (*finalchecks)(int,int), bool use_alt)
 {
+  if (use_alt) {
+    compute_Vn ();
+  }
 #ifdef USE_OMP
   // std::cerr << "Using OpenMP implementation with " << omp_get_max_threads() << " threads" << std::endl;
 
   // OpenMP implementation
 
   // Spawn new MC3D classes with Nphoton' = Nphoton / ThreadCount, and initialize mt_rng seed
+  std::cerr << "Using OpenMP implementation with " << nthread << " threads" << std::endl;
+
   int_fast64_t ii, jj, nthread = omp_get_max_threads();
   int_fast64_t *ticks = new int_fast64_t[(int)nthread];
   MC3D<T> *MCS = new MC3D<T>[(int)nthread];

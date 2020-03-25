@@ -31,12 +31,10 @@ if (HAVE_CUDA)
   # # target_compile_options(bench PUBLIC $<$<COMPILE_LANGUAGE:CXX>:O2>)
   add_executable(bench_MC3D ${bench_MC3D_SOURCES})
   target_include_directories(bench_MC3D PUBLIC ${bench_MC3D_INCLUDE_DIRECTORIES})
-  target_link_libraries(bench_MC3D PUBLIC)
-  target_compile_options(bench_MC3D PUBLIC -O3)
-  # target_link_libraries(bench_MC3D PUBLIC ${ValoMC_LINK_OPTIONS} -msse2)
-  # target_compile_options(bench_MC3D PUBLIC ${ValoMC_COMPILE_OPTIONS} -O3 -msse2)
-
-
+  # target_link_libraries(bench_MC3D PUBLIC)
+  # target_compile_options(bench_MC3D PUBLIC -O3)
+  target_link_libraries(bench_MC3D PUBLIC ${ValoMC_LINK_OPTIONS})
+  target_compile_options(bench_MC3D PUBLIC ${ValoMC_COMPILE_OPTIONS} -O3)
 
   # set(array_INCLUDE_DIRECTORIES
   #   ${CMAKE_SOURCE_DIR}/cpp

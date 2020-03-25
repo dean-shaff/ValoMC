@@ -31,23 +31,25 @@ void benchmark (unsigned nphotons, unsigned niter) {
     mc3d.InitRand();
     t0 = now();
     mc3d.MonteCarlo(
-      [](T perc) -> bool {return true;},
+      [](double perc) -> bool {return true;},
       [](int csum, int Nphoton) {
         std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
       },
       false
     );
     delta_no_alt += (ValoMC::bench::util::now() - t0);
+    std::cerr << "Lost " << mc3d.loss << " photons" << std::endl;
     mc3d.InitRand();
     t1 = now();
     mc3d.MonteCarlo(
-      [](T perc) -> bool {return true;},
+      [](double perc) -> bool {return true;},
       [](int csum, int Nphoton) {
         std::cerr << "csum=" << csum << ", Nphoton=" << Nphoton << std::endl;
       },
       true
     );
     delta_alt += (ValoMC::bench::util::now() - t1);
+    std::cerr << "Lost " << mc3d.loss << " photons" << std::endl;
 
 
   }
