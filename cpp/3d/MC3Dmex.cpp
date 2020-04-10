@@ -111,6 +111,10 @@ bool Progress(double perc){
   return true;
 }
 
+bool Quiet_Progress(double perc) {
+  return true;
+}
+
 template<typename T>
 void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   // Parse input
@@ -194,15 +198,17 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   //MC.GaussianSigma = GaussianSigma;
   //make negative phase0 positive
 
-  if(MC.phase0 < 0) {
+  if (MC.phase0 < 0) {
     MC.phase0 += 2*M_PI*ceil(-MC.phase0 / (2*M_PI));
   }
-  if(rndseed[1]) {
+  if (rndseed[0]) {
      MC.seed = (unsigned long) rndseed[0];
   } else {
      MC.seed = (unsigned long) time(NULL);
   }
   // Initialize
+  // mexPrintf("rndseed[0]=%d\n", rndseed[0]);
+  // mexPrintf("MC.seed=%d\n", MC.seed);
   try {
     MC.ErrorChecks();
     MC.Init();
@@ -227,7 +233,7 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
     #endif
   } else {
     // Compute
-    mexPrintf("Using alt=%d\n", use_alt);
+    // mexPrintf("Using alt=%d\n", use_alt);
     if(disable_pbar[0] == 0) {
        mexPrintf("Computing... \n");
       // Create a wait bar
@@ -237,12 +243,14 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
        MC.MonteCarlo(Progress_with_bar, finalchecks_destroy_bar, use_alt);
        mexPrintf("...done\n");
        printf("\n"); fflush(stdout);
-    } else {
+    } else if (disable_pbar[0] == 1) {
        mexPrintf("Computing... \n");
        MC.MonteCarlo(Progress, finalchecks, use_alt);
 
        mexPrintf("...done\n");
        printf("\n"); fflush(stdout);
+    } else {
+      MC.MonteCarlo(Quiet_Progress, finalchecks, use_alt);
     }
   }
 

@@ -1878,6 +1878,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_TestBoundary(
   if ((BCType_ib == 'm') || (BCType_ib == 'L') || (BCType_ib == 'I') || (BCType_ib == 'C')) {
     // Mirror boundary condition -- Reflect the photon
     MirrorPhoton(phot, *ib);
+    // std::cerr << "PropagatePhoton_alt: MirrorPhoton" << std::endl;
     phot->curface = phot->nextface;
     return 2;
   } else {
@@ -1885,6 +1886,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_TestBoundary(
     // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
     if (BCn[(*ib)] > 0.0) {
       if (FresnelPhoton(phot)) {
+        // std::cerr << "PropagatePhoton_alt: FresnelPhoton" << std::endl;
         return 2;
       }
     }
@@ -2007,7 +2009,6 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   int_fast64_t* ib
 )
 {
-  // std::cerr << "MC3D::PropagatePhoton_SingleStep" << std::endl;
   // Check through which face the photon will exit the current element
   if (WhichFace_alt(phot, dist) == -1) {
     loss++;
@@ -2072,6 +2073,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   if (n[phot_curel] != n[phot_nextel])
   {
     if (FresnelPhoton(phot)) {
+      // std::cerr << "PropagatePhoton_alt: FresnelPhoton 2" << std::endl;
       return 2;
     }
   }
@@ -2107,6 +2109,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   // } else if (HN(phot_nextel, 3) == phot_curel) {
   //   phot->curface = 3;
   // } else {
+  //   loss++;
   //   return 0;
   // }
 
@@ -2246,15 +2249,19 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
              // Mirror boundary condition -- Reflect the photon
              MirrorPhoton(phot, ib);
              phot->curface = phot->nextface;
+             // std::cerr << "PropagatePhoton: MirrorPhoton" << std::endl;
              continue;
            }
            else
            {
              // Absorbing (a, l, i and c)
              // Check for mismatch between inner & outer index of refraction causes Fresnel transmission
-             if (BCn[ib] > 0.0)
-               if (FresnelPhoton(phot))
+             if (BCn[ib] > 0.0) {
+               if (FresnelPhoton(phot)) {
+                 // std::cerr << "PropagatePhoton: FresnelPhoton" << std::endl;
                  continue;
+               }
+             }
 
              if (omega <= 0.0)
              {
@@ -2291,8 +2298,10 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
          // Fresnel transmission/reflection
          if (n[phot->curel] != n[phot->nextel])
          {
-           if (FresnelPhoton(phot))
+           if (FresnelPhoton(phot)) {
+             // std::cerr << "PropagatePhoton: FresnelPhoton 2" << std::endl;
              continue;
+           }
          }
 
          // Upgrade remaining photon propagation lenght in case it is transmitted to different mus domain
