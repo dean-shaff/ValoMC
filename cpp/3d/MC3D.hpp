@@ -2010,6 +2010,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   // std::cerr << "MC3D::PropagatePhoton_SingleStep" << std::endl;
   // Check through which face the photon will exit the current element
   if (WhichFace_alt(phot, dist) == -1) {
+    loss++;
     // std::cerr << "WhichFace_alt == -1" << std::endl;
     return 0;
   }
@@ -2093,6 +2094,7 @@ int MC3D<T>::PropagatePhoton_SingleStep_alt(
   }
 
   if (!curface_set) {
+    loss++;
     return 0;
   }
 
@@ -2139,7 +2141,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
       // }
 
       if (single_step_res == 0) {
-        loss++;
+        // loss++;
         alive = false;
       } else if (single_step_res == 1) {
         if (mus[phot->curel] > 0.0) {
@@ -2264,7 +2266,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
                EBI[ib] -= phot->weight * sin(phot->phase);
              }
              // Photon propagation will terminate
-             loss++;
+             // loss++;
              return;
            }
          }
@@ -2280,7 +2282,7 @@ void MC3D<T>::PropagatePhoton(Photon<T> *phot, bool use_alt)
          if (phot->weight < weight0)
          {
            if (UnifClosed() > chance) {
-             loss++;
+             // loss++;
              return;
            }
            phot->weight /= chance;
