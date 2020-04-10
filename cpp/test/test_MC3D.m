@@ -87,5 +87,5 @@ end
 
 
 function res = allclose (a, b, rtol, atol)
-  res = all( abs(a(:)-b(:)) <= atol+rtol*abs(b(:)) )
+  res = all( abs(a(:)-b(:)) <= atol+rtol*abs(b(:)) );
 end
