@@ -31,11 +31,11 @@
     phase0, n_photons, disable_pbar, uint64(rnseed), false, false);
   t_end_double = toc(t_start);
   double_res(2) = t_end_double;
-  allclose(res0_d_0, res0_d_1, 1e-5, 1e-8)
-  allclose(res1_d_0, res1_d_1, 1e-5, 1e-8)
-  allclose(res2_d_0, res2_d_1, 1e-5, 1e-8)
-  allclose(res3_d_0, res3_d_1, 1e-5, 1e-8)
-  allclose(res4_d_0, res4_d_1, 1e-5, 1e-8)
+  fprintf('res0 allclose=%d\n', allclose(res0_d_0, res0_d_1, 1e-5, 1e-8))
+  fprintf('res1 allclose=%d\n', allclose(res1_d_0, res1_d_1, 1e-5, 1e-8))
+  fprintf('res2 allclose=%d\n', allclose(res2_d_0, res2_d_1, 1e-5, 1e-8))
+  fprintf('res3 allclose=%d\n', allclose(res3_d_0, res3_d_1, 1e-5, 1e-8))
+  fprintf('res4 allclose=%d\n', allclose(res4_d_0, res4_d_1, 1e-5, 1e-8))
 
 
     % fprintf('%s CPU single precision version\n', text);
