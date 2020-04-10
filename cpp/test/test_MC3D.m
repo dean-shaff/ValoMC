@@ -20,7 +20,6 @@
     phase0, n_photons, disable_pbar, uint64(rnseed), false, false);
   t_end_double = toc(t_start);
   double_res(1) = t_end_double;
-  fprintf("seed_used=%u\n", res4_d_0)
 
   text='Alternate';
 
@@ -32,12 +31,11 @@
     phase0, n_photons, disable_pbar, uint64(rnseed), false, false);
   t_end_double = toc(t_start);
   double_res(2) = t_end_double;
-  fprintf("seed_used=%u\n", res4_d_0)
-  allclose(res0_d_0, res0_d_1)
-  allclose(res1_d_0, res1_d_1)
-  allclose(res2_d_0, res2_d_1)
-  allclose(res3_d_0, res3_d_1)
-  allclose(res4_d_0, res4_d_1)
+  allclose(res0_d_0, res0_d_1, 1e-5, 1e-8)
+  allclose(res1_d_0, res1_d_1, 1e-5, 1e-8)
+  allclose(res2_d_0, res2_d_1, 1e-5, 1e-8)
+  allclose(res3_d_0, res3_d_1, 1e-5, 1e-8)
+  allclose(res4_d_0, res4_d_1, 1e-5, 1e-8)
 
 
     % fprintf('%s CPU single precision version\n', text);
@@ -88,6 +86,6 @@ function res = speedup (slower, faster)
 end
 
 
-function res = allclose (a, b)
+function res = allclose (a, b, rtol, atol)
   res = all( abs(a(:)-b(:)) <= atol+rtol*abs(b(:)) )
 end
