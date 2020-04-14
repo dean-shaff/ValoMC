@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.5)
 project (ValoMC)
-find_package(OpenMP)
 
 set (CMAKE_BUILD_TYPE "Release")
 
@@ -16,21 +15,11 @@ find_package(Matlab COMPONENTS MEX_COMPILER MX_LIBRARY ENG_LIBRARY)
 set(ValoMC_COMPILE_OPTIONS "")
 set(ValoMC_LINK_OPTIONS "")
 
-if (OPENMP_FOUND)
-  set(ValoMC_COMPILE_OPTIONS
-    ${OpenMP_CXX_FLAGS}
-  )
-  set(ValoMC_LINK_OPTIONS
-    ${OpenMP_CXX_FLAGS}
-    ${OpenMP_EXE_LINKER_FLAGS}
-  )
-  # message("ValoMC_LINK_OPTIONS=${ValoMC_LINK_OPTIONS}")
-  # message("ValoMC_COMPILE_OPTIONS=${ValoMC_COMPILE_OPTIONS}")
-  # set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  # set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  # set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-  add_definitions(-DUSE_OMP)
-endif()
+set(CPP_3D_DIR
+  ${CMAKE_SOURCE_DIR}/cpp/3d
+)
+set(mc3d_LINK_LIBRARIES "")
+set(mc3d_INCLUDE_DIRECTORIES "")
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} )
@@ -56,11 +45,25 @@ else()
   set(HAVE_CUDA 0)
 endif()
 
-set(CPP_3D_DIR
-  ${CMAKE_SOURCE_DIR}/cpp/3d
-)
-set(mc3d_LINK_LIBRARIES "")
-set(mc3d_INCLUDE_DIRECTORIES "")
+find_package(OpenMP)
+
+if (OPENMP_FOUND)
+  set(ValoMC_COMPILE_OPTIONS
+    ${ValoMC_COMPILE_OPTIONS}
+    ${OpenMP_CXX_FLAGS}
+  )
+  set(ValoMC_LINK_OPTIONS
+    ${ValoMC_LINK_OPTIONS}
+    ${OpenMP_CXX_FLAGS}
+    ${OpenMP_EXE_LINKER_FLAGS}
+  )
+  # message("ValoMC_LINK_OPTIONS=${ValoMC_LINK_OPTIONS}")
+  # message("ValoMC_COMPILE_OPTIONS=${ValoMC_COMPILE_OPTIONS}")
+  # set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  # set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  # set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  add_definitions(-DUSE_OMP)
+endif()
 
 if (HAVE_CUDA)
   find_library(CUDART_LIBRARY cudart HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
@@ -106,7 +109,7 @@ endif()
 #   target_compile_options(${exe} PUBLIC ${ValoMC_COMPILE_OPTIONS})
 # endforeach()
 
-add_subdirectory(cpp/test)
+# add_subdirectory(cpp/test)
 add_subdirectory(cpp/bench)
 
 # if (Matlab_FOUND)
