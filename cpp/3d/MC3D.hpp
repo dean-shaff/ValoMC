@@ -29,7 +29,7 @@
 #include "ArrayMPI.hpp"
 #endif
 
-#include <emmintrin.h>
+// #include <emmintrin.h>
 
 #ifndef INT_FAST64_MAX
 #define INT_FAST64_MAX __INT_FAST64_MAX__
