@@ -229,7 +229,7 @@ void run_MC3D (int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs) {
   if (use_gpu) {
     #ifdef HAVE_CUDA
     mexPrintf("Computing (using GPU)... \n");
-    ValoMC::monte_carlo(MC, MC.Nphoton);
+    ValoMC::monte_carlo(MC, MC.Nphoton, use_alt);
     #endif
   } else {
     // Compute

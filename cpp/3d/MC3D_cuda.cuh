@@ -132,7 +132,7 @@ public:
    * Calculate the amount of GPU memory need to hold all of data for Monte Carlo simulation
    * @return unsigned int in bytes
    */
-  unsigned long get_total_memory_usage ();
+  unsigned long get_total_memory_usage (bool use_alt=false);
 
   __host__ __device__ Array<int_fast64_t>* get_topology () { return topology; }
   __host__ __device__ const Array<int_fast64_t>* get_topology () const { return topology; }

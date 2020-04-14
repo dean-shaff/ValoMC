@@ -35,6 +35,8 @@ int main (int argc, char *argv[]) {
   ValoMC::MC3DCUDA<double> mc3dcuda (mc3d, states_size);
   std::cerr << "mc3dcuda.get_max_block_size_init_state()=" << mc3dcuda.get_max_block_size_init_state() << std::endl;
   std::cerr << "mc3dcuda.get_max_block_size_monte_carlo()=" << mc3dcuda.get_max_block_size_monte_carlo() << std::endl;
+  std::cerr << "mc3dcuda.get_total_memory_usage(false)=" << mc3dcuda.get_total_memory_usage(false) << std::endl;
+  std::cerr << "mc3dcuda.get_total_memory_usage(true)=" << mc3dcuda.get_total_memory_usage(true) << std::endl;
 
   t0 = ValoMC::bench::util::now();
   mc3dcuda.allocate();
@@ -55,13 +57,7 @@ int main (int argc, char *argv[]) {
     );
   }
   ValoMC::bench::util::duration delta_cpu = ValoMC::bench::util::now() - t0;
-
-  t0 = ValoMC::bench::util::now();
-  for (unsigned iter=0; iter<niter; iter++) {
-    mc3dcuda.monte_carlo(false);
-    cudaDeviceSynchronize();
-  }
-  ValoMC::bench::util::duration delta_gpu = ValoMC::bench::util::now() - t0;
+  std::cerr << "CPU version took " << delta_cpu.count() << " s, " << delta_cpu.count() / niter << " s per loop" << std::endl;
 
   t0 = ValoMC::bench::util::now();
   for (unsigned iter=0; iter<niter; iter++) {
@@ -69,11 +65,17 @@ int main (int argc, char *argv[]) {
     cudaDeviceSynchronize();
   }
   ValoMC::bench::util::duration delta_gpu_alt = ValoMC::bench::util::now() - t0;
-
-
-  std::cerr << "CPU version took " << delta_cpu.count() << " s, " << delta_cpu.count() / niter << " s per loop" << std::endl;
-  std::cerr << "GPU version took " << delta_gpu.count() << " s, " << delta_gpu.count() / niter << " s per loop"<< std::endl;
   std::cerr << "Alt GPU version took " << delta_gpu_alt.count() << " s, " << delta_gpu_alt.count() / niter << " s per loop"<< std::endl;
+
+  t0 = ValoMC::bench::util::now();
+  for (unsigned iter=0; iter<niter; iter++) {
+    mc3dcuda.monte_carlo(false);
+    cudaDeviceSynchronize();
+  }
+  ValoMC::bench::util::duration delta_gpu = ValoMC::bench::util::now() - t0;
+  std::cerr << "GPU version took " << delta_gpu.count() << " s, " << delta_gpu.count() / niter << " s per loop"<< std::endl;
+
+
 
   if (delta_gpu > delta_cpu) {
     std::cerr << "CPU version " << delta_gpu.count() / delta_cpu.count() << " times faster" << std::endl;

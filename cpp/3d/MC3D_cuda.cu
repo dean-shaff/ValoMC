@@ -1386,16 +1386,12 @@ void MC3DCUDA<dtype>::monte_carlo_atomic_alt () {
 
   Photon<dtype>* photons;
   gpuErrchk(cudaMalloc((void**)&photons, sizeof(Photon<dtype>)*nphotons));
-  gpuErrchk(cudaMemcpy(photons, this, sizeof(Photon<dtype>)*nphotons, cudaMemcpyHostToDevice));
 
   PhotonAttr<dtype>* photon_attrs;
   gpuErrchk(cudaMalloc((void**)&photon_attrs, sizeof(PhotonAttr<dtype>)*nphotons));
-  gpuErrchk(cudaMemcpy(photon_attrs, this, sizeof(PhotonAttr<dtype>)*nphotons, cudaMemcpyHostToDevice));
 
   int* dead;
   gpuErrchk(cudaMalloc((void**)&dead, sizeof(int)*nphotons));
-  gpuErrchk(cudaMemcpy(dead, this, sizeof(int)*nphotons, cudaMemcpyHostToDevice));
-
 
   unsigned block_size_init_state = max_block_size_init_state;
   unsigned grid_size_init_state = states_size / block_size_init_state;
@@ -1403,17 +1399,14 @@ void MC3DCUDA<dtype>::monte_carlo_atomic_alt () {
     grid_size_init_state++;
   }
 
+  // unsigned block_size_monte_carlo = 1;
+  // unsigned grid_size_monte_carlo = 1;
+
   unsigned block_size_monte_carlo = max_block_size_monte_carlo;
   unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
   if (grid_size_monte_carlo == 0) {
     grid_size_monte_carlo++;
   }
-
-  // unsigned block_size_monte_carlo = max_block_size_monte_carlo;
-  // unsigned grid_size_monte_carlo = states_size / (block_size_monte_carlo/32);
-  // if (grid_size_monte_carlo == 0) {
-  //   grid_size_monte_carlo++;
-  // }
 
   // std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
   // std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
@@ -1423,24 +1416,37 @@ void MC3DCUDA<dtype>::monte_carlo_atomic_alt () {
 
   _monte_carlo_atomic_create_photons<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d, photons, photon_attrs, dead);
   gpuErrchk(cudaGetLastError());
+  // int prev_total = 0;
+  int niter = 0;
   int total = 0;
-
-  while (total != nphotons) {
-    _monte_carlo_atomic_single_step<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d, photons, photon_attrs, dead);
+  while (total < nphotons) {
+    _monte_carlo_atomic_single_step<<<grid_size_monte_carlo, block_size_monte_carlo>>>(
+      mc3dcuda_d, photons, photon_attrs, dead
+    );
     total = thrust::reduce(thrust::device, dead, dead+nphotons, 0);
+    // std::cerr << "MC3DCUDA::monte_carlo_atomic_alt: total-prev_total=" << total-prev_total << std::endl;
+    niter++;
+    if (total > static_cast<int>(nphotons*0.95)) {
+      std::cerr << "MC3DCUDA::monte_carlo_atomic_alt: niter=" << niter << "total=" << total << std::endl;
+      break;
+    }
+    // if (niter > 100) {
+    //   break;
+    // }
   }
 
   gpuErrchk(cudaGetLastError());
   gpuErrchk(cudaFree(mc3dcuda_d));
   gpuErrchk(cudaFree(photons));
   gpuErrchk(cudaFree(photon_attrs));
+  gpuErrchk(cudaFree(dead));
 }
 
 
 
 
 template<typename dtype>
-unsigned long MC3DCUDA<dtype>::get_total_memory_usage () {
+unsigned long MC3DCUDA<dtype>::get_total_memory_usage (bool use_alt) {
   unsigned long total_memory_usage = 0;
   total_memory_usage += sizeof(int_fast64_t) * mc3d.H.N;
   total_memory_usage += sizeof(int_fast64_t) * mc3d.HN.N;
@@ -1471,7 +1477,11 @@ unsigned long MC3DCUDA<dtype>::get_total_memory_usage () {
   total_memory_usage += sizeof(dtype) * mc3d.EBI.N;
 
   total_memory_usage += sizeof(curandState_t) * states_size;
-
+  if (use_alt) {
+    total_memory_usage += sizeof(Photon<dtype>)*nphotons;
+    total_memory_usage += sizeof(PhotonAttr<dtype>)*nphotons;
+    total_memory_usage += sizeof(int)*nphotons;
+  }
   return total_memory_usage;
 }
 
