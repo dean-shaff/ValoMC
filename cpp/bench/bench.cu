@@ -59,7 +59,7 @@ int main (int argc, char *argv[]) {
 
   t0 = ValoMC::bench::util::now();
   for (unsigned iter=0; iter<niter; iter++) {
-    mc3dcuda.monte_carlo();
+    mc3dcuda.monte_carlo(true);
     cudaDeviceSynchronize();
   }
   ValoMC::bench::util::duration delta_gpu = ValoMC::bench::util::now() - t0;

@@ -21,7 +21,7 @@ ValoMC::test::util::TestConfig<T> Config<T>::config;
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can calculate the amount of space needed ",
-  "[MC3DCUDA][unit][get_total_memory_usage]",
+  "[MC3DCUDA][cuda][unit][get_total_memory_usage]",
   float, double
 )
 {
@@ -40,7 +40,7 @@ TEMPLATE_TEST_CASE(
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can initialize properties from MC3D object",
-  "[MC3DCUDA][unit][init]",
+  "[MC3DCUDA][cuda][unit][init]",
   float, double
 )
 {
@@ -73,7 +73,7 @@ __global__ void iter_states(
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can allocate memory",
-  "[MC3DCUDA][unit][allocate]",
+  "[MC3DCUDA][cuda][unit][allocate]",
   float, double
 )
 {
@@ -111,7 +111,7 @@ __global__ void iter_boundary (Array<T>* boundary, unsigned* result)
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can transfer arrays from MC3D object to internal Array objects",
-  "[MC3DCUDA][unit][h2d]",
+  "[MC3DCUDA][cuda][unit][h2d]",
   float, double
 )
 {
@@ -151,7 +151,7 @@ __global__ void fill_array (Array<T>* arr, T val)
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can transfer result arrays to MC3D object",
-  "[MC3DCUDA][unit][d2h]",
+  "[MC3DCUDA][cuda][unit][d2h]",
   float, double
 )
 {
@@ -186,7 +186,7 @@ TEMPLATE_TEST_CASE(
 
 TEMPLATE_TEST_CASE(
   "MC3DCUDA can do monte_carlo simulation",
-  "[MC3DCUDA][unit][monte_carlo]",
+  "[MC3DCUDA][cuda][unit][monte_carlo]",
   float, double
 )
 {
@@ -202,6 +202,7 @@ TEMPLATE_TEST_CASE(
   mc3dcuda.allocate();
   mc3dcuda.h2d();
   mc3dcuda.monte_carlo();
+  // mc3dcuda.monte_carlo(true);
   mc3dcuda.d2h();
 
   bool allclose = true;
@@ -213,5 +214,45 @@ TEMPLATE_TEST_CASE(
   }
 
   REQUIRE(allclose == false);
+  gpuErrchk(cudaDeviceSynchronize());
+}
+
+
+
+TEMPLATE_TEST_CASE(
+  "MC3DCUDA alternate version creates same results as reference implementation",
+  "[MC3DCUDA][cuda][verify][monte_carlo]",
+  float, double
+)
+{
+  Config<TestType>::config.init_MC3D_from_json();
+
+  MC3D<TestType> mc3d = Config<TestType>::config.get_mc3d();
+  mc3d.Nphoton = 100;
+  mc3d.ErrorChecks();
+  mc3d.Init();
+
+  ValoMC::MC3DCUDA<TestType> mc3dcuda_ref(mc3d, 100);
+  ValoMC::MC3DCUDA<TestType> mc3dcuda_alt(mc3d, 100);
+
+  mc3dcuda_ref.allocate();
+  mc3dcuda_ref.h2d();
+  mc3dcuda_ref.monte_carlo(false);
+  mc3dcuda_ref.d2h();
+
+  mc3dcuda_alt.allocate();
+  mc3dcuda_alt.h2d();
+  mc3dcuda_alt.monte_carlo(true);
+  mc3dcuda_alt.d2h();
+
+  // bool allclose = true;
+  //
+  // for (unsigned idx=0; idx<mc3d.ER.N; idx++) {
+  //   if (mc3d.ER[idx] != ) {
+  //     allclose = false;
+  //   }
+  // }
+  //
+  // REQUIRE(allclose == false);
   gpuErrchk(cudaDeviceSynchronize());
 }

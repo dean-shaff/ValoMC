@@ -1,5 +1,8 @@
 #include <stdio.h> // for fprintf, stderr
 
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+
 #include "MC3D_cuda.cuh"
 #include "MC3D_util.cuh"
 
@@ -64,6 +67,85 @@ __global__ void _monte_carlo_atomic (MC3DCUDA<dtype>* mc3d) {
 
 template __global__ void _monte_carlo_atomic<float> (MC3DCUDA<float>* mc3d);
 template __global__ void _monte_carlo_atomic<double> (MC3DCUDA<double>* mc3d);
+
+template<typename dtype>
+__global__ void _monte_carlo_atomic_create_photons (
+  MC3DCUDA<dtype>* mc3d,
+  Photon<dtype>* photons,
+  PhotonAttr<dtype>* photon_attrs,
+  int* dead
+)
+{
+  const int idx = threadIdx.x + blockDim.x*blockIdx.x;
+  const int total_size_x = gridDim.x*blockDim.x;
+
+  const int states_size = mc3d->get_states_size();
+  const int nphotons = mc3d->get_nphotons();
+
+  const int increment_size = states_size > total_size_x ? states_size: total_size_x;
+
+  curandState_t* states = mc3d->get_states();
+  curandState_t local_state = states[idx];
+
+  for (int iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
+    mc3d->create_photon(&photons[iphoton], &local_state);
+    photon_attrs[iphoton].prop = -log(ValoMC::util::rand_open<curandState_t, dtype>(&local_state)) / (*(mc3d->get_scattering()))[photons[iphoton].curel];
+    dead[iphoton] = 0;
+  }
+}
+
+template __global__ void _monte_carlo_atomic_create_photons (MC3DCUDA<float>* mc3d, Photon<float>* photons, PhotonAttr<float>* photon_attrs, int* dead);
+template __global__ void _monte_carlo_atomic_create_photons (MC3DCUDA<double>* mc3d, Photon<double>* photons, PhotonAttr<double>* photon_attrs, int* dead);
+
+template<typename dtype>
+__global__ void _monte_carlo_atomic_single_step (
+  MC3DCUDA<dtype>* mc3d,
+  Photon<dtype>* photons,
+  PhotonAttr<dtype>* photon_attrs,
+  int* dead
+)
+{
+  const int idx = threadIdx.x + blockDim.x*blockIdx.x;
+  const int total_size_x = gridDim.x*blockDim.x;
+
+  const int states_size = mc3d->get_states_size();
+  const int nphotons = mc3d->get_nphotons();
+
+  const int increment_size = states_size > total_size_x ? states_size: total_size_x;
+
+  curandState_t* states = mc3d->get_states();
+  curandState_t local_state = states[idx];
+
+
+  Photon<dtype>* phot;
+  PhotonAttr<dtype>* phot_attr;
+  for (int iphoton=idx; iphoton<nphotons; iphoton+=increment_size) {
+    if (dead[iphoton]) {
+      continue;
+    }
+    phot = &photons[iphoton];
+    phot_attr = &photon_attrs[iphoton];
+    int single_step_res = mc3d->propagate_photon_single_step_atomic(
+      phot, &local_state,
+      &phot_attr->prop,
+      &phot_attr->dist,
+      &phot_attr->ds,
+      &phot_attr->ib
+    );
+    if (single_step_res == 0) {
+      dead[iphoton] = 1;
+    } else if (single_step_res == 1) {
+      if ((*(mc3d->get_scattering()))[phot->curel] > 0.0) {
+        mc3d->scatter_photon(phot, &local_state);
+      }
+      phot_attr->prop = -log(ValoMC::util::rand_open<curandState_t, dtype>(&local_state)) / (*(mc3d->get_scattering()))[phot->curel];
+    }
+  }
+}
+
+template __global__ void _monte_carlo_atomic_single_step (MC3DCUDA<float>* mc3d, Photon<float>* photons, PhotonAttr<float>* photon_attrs, int* dead);
+template __global__ void _monte_carlo_atomic_single_step (MC3DCUDA<double>* mc3d, Photon<double>* photons, PhotonAttr<double>* photon_attrs, int* dead);
+
 
 template<typename dtype>
 void MC3DCUDA<dtype>::init () {
@@ -1248,8 +1330,12 @@ void MC3DCUDA<dtype>::d2h () {
 }
 
 template<typename dtype>
-void MC3DCUDA<dtype>::monte_carlo () {
-  monte_carlo_atomic();
+void MC3DCUDA<dtype>::monte_carlo (bool use_alt) {
+  if (use_alt) {
+    monte_carlo_atomic_alt();
+  } else {
+    monte_carlo_atomic();
+  }
 }
 
 template<typename dtype>
@@ -1287,6 +1373,71 @@ void MC3DCUDA<dtype>::monte_carlo_atomic () {
 
   gpuErrchk(cudaFree(mc3dcuda_d));
 }
+
+
+template<typename dtype>
+void MC3DCUDA<dtype>::monte_carlo_atomic_alt () {
+
+  MC3DCUDA* mc3dcuda_d;
+  gpuErrchk(cudaMalloc((void**)&mc3dcuda_d, sizeof(MC3DCUDA)));
+  gpuErrchk(cudaMemcpy(mc3dcuda_d, this, sizeof(MC3DCUDA), cudaMemcpyHostToDevice));
+
+  unsigned nphotons = get_nphotons();
+
+  Photon<dtype>* photons;
+  gpuErrchk(cudaMalloc((void**)&photons, sizeof(Photon<dtype>)*nphotons));
+  gpuErrchk(cudaMemcpy(photons, this, sizeof(Photon<dtype>)*nphotons, cudaMemcpyHostToDevice));
+
+  PhotonAttr<dtype>* photon_attrs;
+  gpuErrchk(cudaMalloc((void**)&photon_attrs, sizeof(PhotonAttr<dtype>)*nphotons));
+  gpuErrchk(cudaMemcpy(photon_attrs, this, sizeof(PhotonAttr<dtype>)*nphotons, cudaMemcpyHostToDevice));
+
+  int* dead;
+  gpuErrchk(cudaMalloc((void**)&dead, sizeof(int)*nphotons));
+  gpuErrchk(cudaMemcpy(dead, this, sizeof(int)*nphotons, cudaMemcpyHostToDevice));
+
+
+  unsigned block_size_init_state = max_block_size_init_state;
+  unsigned grid_size_init_state = states_size / block_size_init_state;
+  if (grid_size_init_state == 0) {
+    grid_size_init_state++;
+  }
+
+  unsigned block_size_monte_carlo = max_block_size_monte_carlo;
+  unsigned grid_size_monte_carlo = states_size / block_size_monte_carlo;
+  if (grid_size_monte_carlo == 0) {
+    grid_size_monte_carlo++;
+  }
+
+  // unsigned block_size_monte_carlo = max_block_size_monte_carlo;
+  // unsigned grid_size_monte_carlo = states_size / (block_size_monte_carlo/32);
+  // if (grid_size_monte_carlo == 0) {
+  //   grid_size_monte_carlo++;
+  // }
+
+  // std::cerr << "_init_state<<<" << grid_size_init_state << ", " << block_size_init_state << ">>>" << std::endl;
+  // std::cerr << "_monte_carlo_atomic<<<" << grid_size_monte_carlo << ", " << block_size_monte_carlo << ">>>" << std::endl;
+
+  _init_state<<<grid_size_init_state, block_size_init_state>>>(mc3dcuda_d);
+  gpuErrchk(cudaGetLastError());
+
+  _monte_carlo_atomic_create_photons<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d, photons, photon_attrs, dead);
+  gpuErrchk(cudaGetLastError());
+  int total = 0;
+
+  while (total != nphotons) {
+    _monte_carlo_atomic_single_step<<<grid_size_monte_carlo, block_size_monte_carlo>>>(mc3dcuda_d, photons, photon_attrs, dead);
+    total = thrust::reduce(thrust::device, dead, dead+nphotons, 0);
+  }
+
+  gpuErrchk(cudaGetLastError());
+  gpuErrchk(cudaFree(mc3dcuda_d));
+  gpuErrchk(cudaFree(photons));
+  gpuErrchk(cudaFree(photon_attrs));
+}
+
+
+
 
 template<typename dtype>
 unsigned long MC3DCUDA<dtype>::get_total_memory_usage () {

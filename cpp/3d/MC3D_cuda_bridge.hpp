@@ -13,7 +13,7 @@ namespace ValoMC {
  * @param states_size number of curandState_t states to allocate
  */
 template<typename T>
-void monte_carlo (MC3D<T>& mc3d, unsigned states_size=1000) ;
+void monte_carlo (MC3D<T>& mc3d, unsigned states_size=1000, bool use_alt=false) ;
 
 
 }
