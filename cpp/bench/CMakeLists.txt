@@ -32,6 +32,7 @@ if (HAVE_CUDA)
   # target_compile_options(bench PUBLIC $<$<COMPILE_LANGUAGE:CXX>:O2>)
   target_include_directories(bench PUBLIC ${mc3d_INCLUDE_DIRECTORIES} ${bench_INCLUDE_DIRECTORIES})
   target_link_libraries(bench PUBLIC ${mc3d_LINK_LIBRARIES} ${ValoMC_LINK_OPTIONS})
+  # target_compile_options(bench PUBLIC -02)
   target_compile_options(bench PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-dc>)
 
 

@@ -265,6 +265,21 @@ private:
   unsigned max_block_size_monte_carlo;
   unsigned gpu_device_num;
 
+  // device MC3DCUDA object
+  MC3DCUDA<dtype>* mc3dcuda;
+
+  // device photons array
+  Photon<dtype>* photons;
+  Photon<dtype>* photons_copy;
+
+  // device photon attributes array
+  PhotonAttr<dtype>* photon_attrs;
+  PhotonAttr<dtype>* photon_attrs_copy;
+
+  // device array indicating whether photons are dead
+  int* dead;
+  int* dead_copy;
+
 };
 
 template<typename dtype>
@@ -274,7 +289,7 @@ template<typename dtype>
 __global__ void _monte_carlo_atomic (MC3DCUDA<dtype>* mc3d);
 
 template<typename dtype>
-__global__ void _monte_carlo_atomic_single_step (MC3DCUDA<dtype>* mc3d, Photon<dtype>* photons, PhotonAttr<dtype>*, int* dead);
+__global__ void _monte_carlo_atomic_single_step (MC3DCUDA<dtype>* mc3d, Photon<dtype>* photons, PhotonAttr<dtype>*, int* dead, int nphotons);
 
 template<typename dtype>
 __global__ void _monte_carlo_atomic_create_photons (MC3DCUDA<dtype>* mc3d, Photon<dtype>* photons, PhotonAttr<dtype>*, int* dead);

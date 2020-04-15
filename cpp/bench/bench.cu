@@ -28,6 +28,8 @@ int main (int argc, char *argv[]) {
 
   MC3D<double> mc3d = config.get_mc3d();
 
+  std::cerr << "Using seed=" << mc3d.seed << std::endl;
+
   mc3d.Nphoton = nphotons;
   mc3d.ErrorChecks();
   mc3d.Init();
@@ -43,8 +45,6 @@ int main (int argc, char *argv[]) {
   mc3dcuda.h2d();
   cudaDeviceSynchronize();
   ValoMC::bench::util::duration delta_h2d = ValoMC::bench::util::now() - t0;
-
-
   std::cerr << "Took " << delta_h2d.count() << " s to transfer to GPU" << std::endl;
 
   t0 = ValoMC::bench::util::now();
@@ -76,11 +76,21 @@ int main (int argc, char *argv[]) {
   std::cerr << "GPU version took " << delta_gpu.count() << " s, " << delta_gpu.count() / niter << " s per loop"<< std::endl;
 
 
+  if (delta_gpu > delta_gpu_alt) {
+    std::cerr << "Alt GPU version " << delta_gpu.count() / delta_gpu_alt.count() << " times faster" << std::endl;
+  } else {
+    std::cerr << "Ref GPU version " << delta_gpu_alt.count() / delta_gpu.count() << " times faster" << std::endl;
+  }
 
   if (delta_gpu > delta_cpu) {
     std::cerr << "CPU version " << delta_gpu.count() / delta_cpu.count() << " times faster" << std::endl;
   } else {
-    std::cerr << "GPU version " << delta_cpu.count() / delta_gpu.count() << " times faster" << std::endl;
+    std::cerr << "Ref GPU version " << delta_cpu.count() / delta_gpu.count() << " times faster" << std::endl;
   }
 
+  if (delta_gpu_alt > delta_cpu) {
+    std::cerr << "CPU version " << delta_gpu_alt.count() / delta_cpu.count() << " times faster" << std::endl;
+  } else {
+    std::cerr << "Alt GPU version " << delta_cpu.count() / delta_gpu_alt.count() << " times faster" << std::endl;
+  }
 }
